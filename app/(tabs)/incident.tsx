@@ -10,12 +10,13 @@ const { width } = Dimensions.get('window');
 
 // ─── Incident Type Config ───────────────────────────────────────────────
 const INCIDENT_TYPES: Record<string, { icon: string; color: string; label: string }> = {
-    fire: { icon: 'fire', color: '#EF4444', label: 'Fire' },
-    flood: { icon: 'weather-pouring', color: '#3B82F6', label: 'Flood' },
-    vehicular: { icon: 'car-emergency', color: '#F97316', label: 'Vehicular' },
-    medical: { icon: 'hospital-marker', color: '#10B981', label: 'Medical' },
-    structural: { icon: 'home-alert', color: '#8B5CF6', label: 'Structural' },
-    power_outage: { icon: 'flash-alert', color: '#EAB308', label: 'Power Outage' },
+    medical: { icon: 'stethoscope', color: colors.info, label: 'Medical' },
+    trauma: { icon: 'pulse', color: '#8B5CF6', label: 'Trauma' },
+    vehicular: { icon: 'car', color: colors.warning, label: 'Vehicular' },
+    general: { icon: 'flash', color: colors.textSecondary, label: 'General' },
+    flood: { icon: 'waves', color: '#0EA5E9', label: 'Flood' },
+    earthquake: { icon: 'alert-circle-outline', color: '#EAB308', label: 'Earthquake' },
+    fire: { icon: 'fire', color: colors.critical, label: 'Fire' },
 };
 
 // ─── Mock Incidents ─────────────────────────────────────────────────────
@@ -28,15 +29,17 @@ const MOCK_INCIDENTS = [
         timeAgo: '25 min ago',
         status: 'active' as const,
         severity: 'critical' as const,
+        isToday: true,
     },
     {
         id: '2',
-        title: 'Street Flooding Due to Heavy Rain',
+        title: 'Street Flooding Map',
         type: 'flood',
         location: 'N. Domingo St., San Juan City',
         timeAgo: '1 hour ago',
         status: 'active' as const,
         severity: 'warning' as const,
+        isToday: true,
     },
     {
         id: '3',
@@ -46,50 +49,56 @@ const MOCK_INCIDENTS = [
         timeAgo: '2 hours ago',
         status: 'resolved' as const,
         severity: 'advisory' as const,
+        isToday: true,
     },
     {
         id: '4',
-        title: 'Medical Emergency Response',
+        title: 'Medical Assistance Required',
         type: 'medical',
         location: 'Brgy. Maytunas, San Juan City',
         timeAgo: '3 hours ago',
         status: 'resolved' as const,
         severity: 'warning' as const,
+        isToday: true,
     },
     {
         id: '5',
-        title: 'Partial Building Crack Observed',
-        type: 'structural',
-        location: 'Brgy. Corazon de Jesus, San Juan City',
-        timeAgo: '5 hours ago',
-        status: 'active' as const,
-        severity: 'advisory' as const,
+        title: 'Severe Earthquake Aftershock',
+        type: 'earthquake',
+        location: 'City Wide Impact',
+        timeAgo: 'Today, 8:00 AM',
+        status: 'resolved' as const,
+        severity: 'critical' as const,
+        isToday: true,
     },
     {
         id: '6',
-        title: 'Power Outage in Multiple Blocks',
-        type: 'power_outage',
+        title: 'Reported Trauma Case',
+        type: 'trauma',
         location: 'Brgy. St. Joseph, San Juan City',
-        timeAgo: '6 hours ago',
+        timeAgo: 'Yesterday',
         status: 'resolved' as const,
         severity: 'advisory' as const,
+        isToday: false,
     },
     {
         id: '7',
-        title: 'Grass Fire Near Open Lot',
-        type: 'fire',
+        title: 'General Utility Fault',
+        type: 'general',
         location: 'Brgy. Tibagan, San Juan City',
-        timeAgo: '8 hours ago',
+        timeAgo: 'Yesterday',
         status: 'resolved' as const,
         severity: 'warning' as const,
+        isToday: false,
     },
 ];
 
 // ─── Trend Summary Data ─────────────────────────────────────────────────
-const TREND_STATS = {
-    total: MOCK_INCIDENTS.length,
-    active: MOCK_INCIDENTS.filter(i => i.status === 'active').length,
-    resolved: MOCK_INCIDENTS.filter(i => i.status === 'resolved').length,
+const TODAY_INCIDENTS = MOCK_INCIDENTS.filter(i => i.isToday);
+const TODAY_STATS = {
+    total: TODAY_INCIDENTS.length,
+    active: TODAY_INCIDENTS.filter(i => i.status === 'active').length,
+    resolved: TODAY_INCIDENTS.filter(i => i.status === 'resolved').length,
 };
 
 // ─── Incident Type Counts ───────────────────────────────────────────────
@@ -150,19 +159,29 @@ export default function IncidentScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* ── Trend Summary Cards ── */}
-                    <View style={styles.trendRow}>
-                        <View style={[styles.trendCard, { borderLeftColor: colors.secondary }]}>
-                            <Text style={styles.trendValue}>{TREND_STATS.total}</Text>
-                            <Text style={styles.trendLabel}>This Month</Text>
+                    {/* ── Today's Summary Card ── */}
+                    <View style={styles.todaySummaryCard}>
+                        <View style={styles.summaryHeader}>
+                            <View style={styles.todayBadge}>
+                                <Text style={styles.todayBadgeText}>TODAY</Text>
+                            </View>
+                            <Text style={styles.summaryTitle}>Incident Summary</Text>
                         </View>
-                        <View style={[styles.trendCard, { borderLeftColor: colors.critical }]}>
-                            <Text style={[styles.trendValue, { color: colors.critical }]}>{TREND_STATS.active}</Text>
-                            <Text style={styles.trendLabel}>Active</Text>
-                        </View>
-                        <View style={[styles.trendCard, { borderLeftColor: colors.success }]}>
-                            <Text style={[styles.trendValue, { color: colors.success }]}>{TREND_STATS.resolved}</Text>
-                            <Text style={styles.trendLabel}>Resolved</Text>
+                        <View style={styles.summaryContent}>
+                            <View style={styles.summaryItem}>
+                                <Text style={styles.summaryValue}>{TODAY_STATS.total}</Text>
+                                <Text style={styles.summaryLabel}>Total</Text>
+                            </View>
+                            <View style={styles.summaryDivider} />
+                            <View style={styles.summaryItem}>
+                                <Text style={[styles.summaryValue, { color: colors.critical }]}>{TODAY_STATS.active}</Text>
+                                <Text style={styles.summaryLabel}>Active</Text>
+                            </View>
+                            <View style={styles.summaryDivider} />
+                            <View style={styles.summaryItem}>
+                                <Text style={[styles.summaryValue, { color: colors.success }]}>{TODAY_STATS.resolved}</Text>
+                                <Text style={styles.summaryLabel}>Resolved</Text>
+                            </View>
                         </View>
                     </View>
 
@@ -278,32 +297,122 @@ const styles = StyleSheet.create({
     },
 
     // Trend Summary
-    trendRow: {
-        flexDirection: 'row',
-        gap: 10,
+    todaySummaryCard: {
+        backgroundColor: 'white',
+        borderRadius: 24,
+        padding: 24,
         marginBottom: spacing.lg,
-    },
-    trendCard: {
-        flex: 1,
-        backgroundColor: '#F8FAFC',
-        borderRadius: 16,
-        padding: 14,
-        borderLeftWidth: 4,
         borderWidth: 1,
         borderColor: '#E2E8F0',
+        elevation: 8,
+        shadowColor: colors.secondary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
     },
-    trendValue: {
-        fontSize: 26,
+    summaryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+        gap: 10,
+    },
+    todayBadge: {
+        backgroundColor: 'rgba(27, 37, 96, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    todayBadgeText: {
+        fontSize: 10,
         fontWeight: '900',
         color: colors.secondary,
-        marginBottom: 2,
+        letterSpacing: 1,
     },
-    trendLabel: {
+    summaryTitle: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: colors.secondary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    summaryContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+    },
+    summaryItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    summaryValue: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: colors.secondary,
+    },
+    summaryLabel: {
         fontSize: 11,
         fontWeight: '700',
         color: '#94A3B8',
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        marginTop: 4,
+    },
+    summaryDivider: {
+        width: 1,
+        height: 40,
+        backgroundColor: '#F1F5F9',
+    },
+
+    // Category Selector
+    categoryContainer: {
+        marginBottom: spacing.lg,
+        marginLeft: -spacing.md,
+        marginRight: -spacing.md,
+    },
+    categoryContent: {
+        paddingHorizontal: spacing.md,
+        gap: 12,
+        paddingBottom: 8,
+    },
+    categoryCard: {
+        width: 85,
+        height: 110,
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    categoryCardSelected: {
+        borderColor: colors.info,
+        borderWidth: 2,
+        elevation: 4,
+        shadowColor: colors.info,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+    },
+    categoryIconWrapper: {
+        width: 50,
+        height: 50,
+        borderRadius: 12,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    categoryIconWrapperSelected: {
+        backgroundColor: colors.info + '10',
+    },
+    categoryText: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: '#94A3B8',
+        textAlign: 'center',
+    },
+    categoryTextSelected: {
+        color: colors.info,
     },
 
     // Sub-Section Title
