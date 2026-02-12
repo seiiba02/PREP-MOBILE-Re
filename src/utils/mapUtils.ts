@@ -9,6 +9,9 @@
  */
 
 import { MAP_OUTLINE } from '../constants/mapOutline';
+import { SANJUAN_RIVER } from '../constants/waterways/sanjuan';
+import { ERMITANO_CREEK } from '../constants/waterways/ermitano';
+import { MAYTUNAS_CREEK } from '../constants/waterways/maytunas';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -77,6 +80,33 @@ export function getBarangayCentroidsGeoJSON() {
     return {
         type: 'FeatureCollection' as const,
         features: getBarangayCentroids(),
+    };
+}
+
+/**
+ * Returns a GeoJSON FeatureCollection containing the city's main waterways.
+ * Combines San Juan River, Ermitaño Creek, and Maytunas Creek.
+ */
+export function getWaterwaysGeoJSON() {
+    return {
+        type: 'FeatureCollection' as const,
+        features: [
+            {
+                type: 'Feature' as const,
+                properties: { name: 'San Juan River' },
+                geometry: SANJUAN_RIVER,
+            },
+            {
+                type: 'Feature' as const,
+                properties: { name: 'Ermitaño Creek' },
+                geometry: ERMITANO_CREEK,
+            },
+            {
+                type: 'Feature' as const,
+                properties: { name: 'Maytunas Creek' },
+                geometry: MAYTUNAS_CREEK,
+            },
+        ],
     };
 }
 
