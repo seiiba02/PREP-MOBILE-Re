@@ -1,6 +1,6 @@
 # PREP Mobile
 
-**PREP Mobile** (Public Response and Emergency Preparedness) is a cross-platform mobile application built with **React Native** and **Expo**. It is designed to provide residents of San Juan City with real-time emergency alerts, interactive maps for evacuation centers, and a comprehensive directory of emergency contacts.
+**PREP Mobile** is a cross-platform mobile application built with **React Native** and **Expo**. It is designed to provide residents of San Juan City with real-time emergency alerts, interactive maps for evacuation centers, and a comprehensive directory of emergency contacts.
 
 ---
 
