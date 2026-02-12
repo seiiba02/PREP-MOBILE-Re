@@ -33,7 +33,7 @@ export default function LoginScreen() {
     };
 
     return (
-        <LinearGradient colors={['#FF4D4D', '#1B2560']} style={styles.container}>
+        <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.container}>
             <ImageBackground source={backgroundImage} style={sharedStyles.backgroundImage}>
                 <SafeAreaView style={styles.container}>
                     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
         margin: 'auto'
     },
     guestButton: {
-        backgroundColor: '#FF4D4D',
+        backgroundColor: colors.primary,
         width: 295,
         height: 56,
         borderRadius: 50,
