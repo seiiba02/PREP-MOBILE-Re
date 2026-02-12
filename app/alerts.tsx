@@ -87,7 +87,7 @@ export default function AlertsScreen() {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} />
+                    <MaterialCommunityIcons name="arrow-left" size={24} color={colors.secondary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Emergency Alerts</Text>
                 <TouchableOpacity onPress={markAllAsRead}>
@@ -214,6 +214,7 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     backButton: {
-        color: colors.secondary,
+        padding: spacing.xs,
+        marginLeft: -spacing.xs,
     },
 });
