@@ -40,8 +40,11 @@ export default function TabLayout() {
                     title: 'Contact',
                     tabBarIcon: ({ color, focused }) => (
                         <View style={styles.iconContainer}>
-                            {focused && <View style={styles.activeIndicator} />}
-                            <Feather name="phone" size={26} color={color} />
+                            <MaterialCommunityIcons
+                                name={focused ? "phone" : "phone-outline"}
+                                size={28}
+                                color={color}
+                            />
                         </View>
                     ),
                 }}
@@ -69,7 +72,10 @@ export default function TabLayout() {
                     tabBarIcon: ({ color, focused }) => (
                         <View style={styles.iconContainer}>
                             {focused && <View style={styles.activeIndicator} />}
-                            <MaterialCommunityIcons name="play-circle-outline" size={26} color={color} />
+                            <MaterialCommunityIcons
+                                name={focused ? "play-circle" : "play-circle-outline"}
+                                size={26}
+                                color={color} />
                         </View>
                     ),
                 }}
@@ -80,8 +86,11 @@ export default function TabLayout() {
                     title: 'Profile',
                     tabBarIcon: ({ color, focused }) => (
                         <View style={styles.iconContainer}>
-                            {focused && <View style={styles.activeIndicator} />}
-                            <Feather name="user" size={26} color={color} />
+                            <MaterialCommunityIcons
+                                name={focused ? "account" : "account-outline"}
+                                size={28}
+                                color={color}
+                            />
                         </View>
                     ),
                 }}
