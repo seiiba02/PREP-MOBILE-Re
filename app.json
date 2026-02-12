@@ -13,7 +13,13 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.PREPMOBILERe",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show you on the map and help you navigate to evacuation centers.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to show you on the map and help you navigate to evacuation centers.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +27,28 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.PREPMOBILERe",
+      "permissions": [
+        "android.permission.CALL_PHONE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "@maplibre/maplibre-react-native"
+    ],
+    "scheme": "prep-mobile",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6b67831d-3b58-430f-a151-0d74e92b5f65"
+      }
     }
   }
 }
