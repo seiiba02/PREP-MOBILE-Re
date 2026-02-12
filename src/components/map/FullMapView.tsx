@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing } from '../../constants/colors';
 import { config } from '../../constants/config';
-import { getCityOutlineGeoJSON } from '../../utils/mapUtils';
+import { getCityOutlineGeoJSON, getWaterwaysGeoJSON } from '../../utils/mapUtils';
 
 const LOCATIONS = [
     {
@@ -60,6 +60,7 @@ export function FullMapView() {
     const mapRef = useRef<MapLibreGL.MapViewRef>(null);
     const [mapStyle, setMapStyle] = useState<'liberty' | 'positron'>('liberty');
     const cityOutline = useMemo(() => getCityOutlineGeoJSON(), []);
+    const waterways = useMemo(() => getWaterwaysGeoJSON(), []);
 
     const toggleMapStyle = () =>
         setMapStyle((prev) => (prev === 'liberty' ? 'positron' : 'liberty'));
@@ -105,6 +106,23 @@ export function FullMapView() {
                             lineColor: colors.secondary,
                             lineWidth: 2,
                             lineOpacity: 0.8,
+                        }}
+                    />
+                </MapLibreGL.ShapeSource>
+
+                {/* Waterways Section — Blue lines for rivers/creeks */}
+                <MapLibreGL.ShapeSource
+                    id="waterways-source"
+                    shape={waterways as any}
+                >
+                    <MapLibreGL.LineLayer
+                        id="waterways-line"
+                        style={{
+                            lineColor: '#0EA5E9',
+                            lineWidth: 2.5,
+                            lineOpacity: 0.8,
+                            lineCap: 'round',
+                            lineJoin: 'round',
                         }}
                     />
                 </MapLibreGL.ShapeSource>
@@ -191,6 +209,17 @@ export function FullMapView() {
                                 />
                                 <Text style={styles.legendText}>
                                     Fire/Police
+                                </Text>
+                            </View>
+                            <View style={styles.legendItem}>
+                                <View
+                                    style={[
+                                        styles.dot,
+                                        { backgroundColor: '#0EA5E9' },
+                                    ]}
+                                />
+                                <Text style={styles.legendText}>
+                                    Waterways
                                 </Text>
                             </View>
                         </View>
