@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { sharedStyles } from '../_layout';
 import { SharedHeader } from '../../../src/components/SharedHeader';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SOSButton } from '../../../src/components/SOSButton';
+import { EmergencySection } from '../../../src/components/emergency/EmergencySection';
 import { SOSModal } from '../../../src/components/SOSModal';
 
 const { width } = Dimensions.get('window');
@@ -61,8 +61,8 @@ export default function ContactDirectoryScreen() {
                         onPress={() => router.push('/contacts/district-2' as any)}
                     />
 
-                    {/* SOS Button */}
-                    <SOSButton onPress={() => setSosModalVisible(true)} />
+                    {/* Emergency Services Section */}
+                    <EmergencySection onSOSPress={() => setSosModalVisible(true)} />
                 </View>
             </ScrollView>
 
