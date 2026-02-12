@@ -119,8 +119,8 @@ export function FullMapView() {
                         id="waterways-line"
                         style={{
                             lineColor: '#0EA5E9',
-                            lineWidth: 2.5,
-                            lineOpacity: 0.8,
+                            lineWidth: 5,
+                            lineOpacity: 1,
                             lineCap: 'round',
                             lineJoin: 'round',
                         }}
