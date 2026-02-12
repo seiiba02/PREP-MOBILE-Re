@@ -24,7 +24,7 @@ export const EmergencySection = ({ onSOSPress }: EmergencySectionProps) => {
                 {/* Secondary: Fire & Police */}
                 <View style={styles.secondaryRow}>
                     <EmergencyButton
-                        label="BFP Fire"
+                        label="BFP"
                         icon="fire"
                         number={fireContact?.number || '8725-2079'}
                         backgroundColor="#F97316"
