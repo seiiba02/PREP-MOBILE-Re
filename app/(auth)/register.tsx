@@ -186,7 +186,6 @@ const styles = StyleSheet.create({
         padding: spacing.xl,
     },
     backButton: {
-        color: 'white',
         marginBottom: spacing.md,
     },
     header: {
