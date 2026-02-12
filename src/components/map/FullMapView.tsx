@@ -36,19 +36,23 @@ const LOCATIONS = [
 
 const markerIcon = (type: string) => {
     switch (type) {
-        case 'hospital':     return 'hospital-marker';
-        case 'evacuation':   return 'home-alert';
-        case 'fire_station': return 'fire-truck';
-        default:             return 'office-building';
+        case 'hospital':
+            return 'hospital-marker';
+        case 'evacuation':
+            return 'home-alert';
+        case 'fire_station':
+            return 'fire-truck';
+        default:
+            return 'office-building';
     }
 };
 
 const markerColor = (type: string) => {
     switch (type) {
-        case 'hospital':     return colors.info;
-        case 'evacuation':   return colors.success;
+        case 'hospital': return colors.info;
+        case 'evacuation': return colors.success;
         case 'fire_station': return colors.critical;
-        default:             return colors.secondary;
+        default: return colors.secondary;
     }
 };
 
