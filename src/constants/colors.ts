@@ -1,6 +1,6 @@
 export const colors = {
   // Primary palette (Updated from Project Spec)
-  primary: '#CE0000',      // Vibrant Red - Emergency/Urgency
+  primary: '#FF4D4D',      // Vibrant Red - Emergency/Urgency
   secondary: '#1B2560',    // Deep Navy Blue - Trust/Authority
   accent: '#F59E0B',       // Amber - Warnings/Attention
 
