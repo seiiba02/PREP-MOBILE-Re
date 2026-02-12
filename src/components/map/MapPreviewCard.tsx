@@ -1,11 +1,3 @@
-/**
- * MapPreviewCard — live MapLibre map for the dashboard.
- *
- * ⚠️  This file imports @maplibre/maplibre-react-native directly.
- *     It must ONLY be rendered inside <MapWrapper> so that Expo Go
- *     never evaluates this module.
- */
-
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import MapLibreGL from '@maplibre/maplibre-react-native';
