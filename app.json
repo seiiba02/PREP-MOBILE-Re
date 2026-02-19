@@ -41,7 +41,9 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      "expo-notifications",
+      "expo-video"
     ],
     "scheme": "prep-mobile",
     "extra": {
