@@ -1,10 +1,41 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
+
+// Safe lazy accessors — these modules crash in Expo Go
+function getNotifications() {
+    try {
+        return require('expo-notifications') as typeof import('expo-notifications');
+    } catch {
+        return null;
+    }
+}
+
+function getDevice() {
+    try {
+        return require('expo-device') as typeof import('expo-device');
+    } catch {
+        return null;
+    }
+}
+
+function getConstants() {
+    try {
+        return require('expo-constants').default;
+    } catch {
+        return null;
+    }
+}
 
 export async function registerForPushNotificationsAsync() {
-    let token;
+    const Notifications = getNotifications();
+    const Device = getDevice();
+    const Constants = getConstants();
+
+    if (!Notifications || !Device) {
+        console.log('Notifications not available in this environment');
+        return undefined;
+    }
+
+    let token: string | undefined;
 
     if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
@@ -23,7 +54,7 @@ export async function registerForPushNotificationsAsync() {
             finalStatus = status;
         }
         if (finalStatus !== 'granted') {
-            alert('Failed to get push token for push notification!');
+            console.log('Failed to get push token for push notification!');
             return;
         }
 
@@ -41,6 +72,11 @@ export async function registerForPushNotificationsAsync() {
 }
 
 export async function sendLocalNotification(title: string, body: string, data = {}) {
+    const Notifications = getNotifications();
+    if (!Notifications) {
+        console.log('Cannot send notification — module not available');
+        return;
+    }
     await Notifications.scheduleNotificationAsync({
         content: {
             title,

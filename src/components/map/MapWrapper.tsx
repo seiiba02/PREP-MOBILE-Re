@@ -1,10 +1,18 @@
 import React from 'react';
-import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { MapPlaceholder } from '../common/MapPlaceholder';
 
-
-export const isDevBuild: boolean =
-    Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
+// Safely detect if we're in a development build (not Expo Go)
+let isDevBuild = false;
+try {
+    const Constants = require('expo-constants').default;
+    const ExecutionEnvironment = require('expo-constants').ExecutionEnvironment;
+    if (Constants && ExecutionEnvironment) {
+        isDevBuild = Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
+    }
+} catch {
+    isDevBuild = false;
+}
+export { isDevBuild };
 
 interface MapWrapperProps {
     children: React.ReactNode;
