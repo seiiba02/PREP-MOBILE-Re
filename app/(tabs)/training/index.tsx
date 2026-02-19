@@ -24,52 +24,9 @@ function mapApiVideo(v: ApiVideo): VideoResource {
     };
 }
 
-const MOCK_VIDEOS: VideoResource[] = [
-    {
-        id: '1',
-        title: 'Earthquake Safety 101: Drop, Cover, Hold',
-        description: 'Learn the essential steps to take when an earthquake strikes. Proper technique specifically for high-density areas in San Juan.',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1594498653385-d5172c532c00?auto=format&fit=crop&q=80&w=400',
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-        duration: 185,
-        category: 'Earthquake',
-        createdAt: '2025-10-15',
-    },
-    {
-        id: '2',
-        title: 'How to use a Fire Extinguisher (PASS Method)',
-        description: 'A quick guide on using fire extinguishers correctly during a fire emergency.',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1599708145804-03774619965d?auto=format&fit=crop&q=80&w=400',
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-        duration: 120,
-        category: 'Fire',
-        createdAt: '2025-11-02',
-    },
-    {
-        id: '3',
-        title: 'First Aid: Basic CPR Tutorial',
-        description: 'Cardiopulmonary resuscitation basics for bystanders. Hands-only CPR instructions.',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=400',
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-        duration: 310,
-        category: 'First Aid',
-        createdAt: '2026-01-10',
-    },
-    {
-        id: '4',
-        title: 'Preparing an Emergency Go-Bag',
-        description: 'The complete list of items you need in your disaster preparedness kit.',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1629470948467-9758d57d193d?auto=format&fit=crop&q=80&w=400',
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-        duration: 450,
-        category: 'All',
-        createdAt: '2025-12-20',
-    }
-];
-
 export default function TrainingScreen() {
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const [videos, setVideos] = useState<VideoResource[]>(MOCK_VIDEOS);
+    const [videos, setVideos] = useState<VideoResource[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const { unreadCount } = useAlerts();
@@ -83,11 +40,11 @@ export default function TrainingScreen() {
             if (apiVideos.length > 0) {
                 setVideos(apiVideos.map(mapApiVideo));
             } else {
-                setVideos(MOCK_VIDEOS);
+                setVideos([]);
             }
         } catch {
             // Keep fallback mocks visible on network error
-            setVideos(MOCK_VIDEOS);
+            setVideos([]);
         } finally {
             setLoading(false);
             setRefreshing(false);
