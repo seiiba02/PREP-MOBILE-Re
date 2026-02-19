@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { User, AuthState } from '../types';
+import {
+    loginResident,
+    registerResident,
+    getResidentProfile,
+    updateResidentProfile,
+    ApiResident,
+} from '../services/api';
 
 interface AuthContextType extends AuthState {
     login: (contactNumber: string, password: string) => Promise<void>;
@@ -12,6 +20,25 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const STORAGE_KEY = '@PREP_AUTH_DATA';
+
+/** Map the backend resident shape → the app-wide User shape. */
+function mapApiResident(r: ApiResident, token: string): { user: User; token: string } {
+    const user: User = {
+        id: String(r.id),
+        fullName: r.full_name,
+        contactNumber: r.contact_number ?? '',
+        barangay: r.barangay?.name ?? '',
+        address: '',
+        zipCode: '',
+        otp: '',
+        createdAt: r.created_at ?? new Date().toISOString(),
+        role: 'resident',
+    };
+    return { user, token };
+}
+
+const DEVICE_NAME =
+    Platform.OS === 'android' ? 'PREP Android App' : 'PREP iOS App';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [state, setState] = useState<AuthState>({
@@ -28,12 +55,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const storedData = await AsyncStorage.getItem(STORAGE_KEY);
                 if (storedData) {
                     const { user, token } = JSON.parse(storedData);
-                    setState({
-                        user,
-                        token,
-                        isLoading: false,
-                        isAuthenticated: true,
-                    });
+                    setState({ user, token, isLoading: false, isAuthenticated: true });
                 } else {
                     setState(prev => ({ ...prev, isLoading: false }));
                 }
@@ -42,35 +64,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setState(prev => ({ ...prev, isLoading: false }));
             }
         };
-
         loadStoredData();
     }, []);
 
     const login = async (contactNumber: string, password: string) => {
         setState(prev => ({ ...prev, isLoading: true }));
         try {
-            // Mock login for scaffold
-            // In production, this would be an API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            const mockUser: User = {
-                id: '1',
-                fullName: 'Juan Dela Cruz',
-                contactNumber,
-                barangay: 'Addition Hills',
-                createdAt: new Date().toISOString(),
-            };
-            const mockToken = 'mock-jwt-token';
-
-            const authData = { user: mockUser, token: mockToken };
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(authData));
-
-            setState({
-                user: mockUser,
-                token: mockToken,
-                isLoading: false,
-                isAuthenticated: true,
+            const payload = await loginResident({
+                identifier: contactNumber,
+                password,
+                device_name: DEVICE_NAME,
             });
+            const { user, token } = mapApiResident(payload.resident, payload.token);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }));
+            setState({ user, token, isLoading: false, isAuthenticated: true });
         } catch (error) {
             setState(prev => ({ ...prev, isLoading: false }));
             throw error;
@@ -80,27 +87,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const register = async (userData: Partial<User> & { password: string }) => {
         setState(prev => ({ ...prev, isLoading: true }));
         try {
-            // Mock registration
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // TODO: collect `email` and `contact_number` in the register form.
+            // For now, derive a placeholder email so the backend validates.
+            const contactNumber = userData.contactNumber
+                ?? userData['contactNumber' as keyof typeof userData] as string
+                ?? '';
+            const email = contactNumber.includes('@')
+                ? contactNumber
+                : `${contactNumber.replace(/\D/g, '')}@prep.local`;
 
-            const newUser: User = {
-                id: Math.random().toString(36).substr(2, 9),
-                fullName: userData.fullName || '',
-                contactNumber: userData.contactNumber || '',
-                barangay: userData.barangay || '',
-                createdAt: new Date().toISOString(),
-            };
-            const mockToken = 'mock-jwt-token';
-
-            const authData = { user: newUser, token: mockToken };
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(authData));
-
-            setState({
-                user: newUser,
-                token: mockToken,
-                isLoading: false,
-                isAuthenticated: true,
+            const payload = await registerResident({
+                full_name: userData.fullName ?? '',
+                email,
+                contact_number: contactNumber,
+                password: userData.password,
+                password_confirmation: userData.password,
+                // Backend resolves by name when barangay_id is omitted
+                barangay_name: userData.barangay ?? '',
+                device_name: DEVICE_NAME,
             });
+            const { user, token } = mapApiResident(payload.resident, payload.token);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }));
+            setState({ user, token, isLoading: false, isAuthenticated: true });
         } catch (error) {
             setState(prev => ({ ...prev, isLoading: false }));
             throw error;
@@ -110,29 +118,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const logout = async () => {
         try {
             await AsyncStorage.removeItem(STORAGE_KEY);
-            setState({
-                user: null,
-                token: null,
-                isLoading: false,
-                isAuthenticated: false,
-            });
         } catch (error) {
-            console.error('Failed to logout:', error);
+            console.error('Failed to clear auth storage:', error);
+        } finally {
+            setState({ user: null, token: null, isLoading: false, isAuthenticated: false });
         }
     };
 
     const updateUser = async (data: Partial<User>) => {
         if (!state.user) return;
-
-        const updatedUser = { ...state.user, ...data };
         try {
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
-                user: updatedUser,
-                token: state.token
-            }));
-            setState(prev => ({ ...prev, user: updatedUser }));
+            const updated = await updateResidentProfile({
+                full_name: data.fullName,
+                contact_number: data.contactNumber,
+            });
+            const { user } = mapApiResident(updated, state.token ?? '');
+            const mergedUser = { ...state.user, ...user };
+            await AsyncStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify({ user: mergedUser, token: state.token }),
+            );
+            setState(prev => ({ ...prev, user: mergedUser }));
         } catch (error) {
-            console.error('Failed to update user:', error);
+            console.error('Failed to update profile:', error);
+            throw error;
         }
     };
 
