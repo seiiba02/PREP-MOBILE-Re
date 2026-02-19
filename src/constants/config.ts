@@ -26,10 +26,14 @@ export const config = {
         maxZoom: 18,
     },
 
-    // API settings (Placeholders)
+    // API settings
+    // ── Change SERVER_URL to your machine's LAN IP when testing on a
+    // ── physical device (e.g. 'http://192.168.1.100').  For Android
+    // ── emulators use 'http://10.0.2.2'; for iOS simulators 'http://localhost'.
     api: {
-        baseUrl: 'https://api.prep-mobile.ph/v1',
-        timeout: 10000,
+        serverUrl: 'http://10.10.10.32:8000',      // PREP-V2 Laravel base URL — must include :8000 (artisan serve port)
+        get baseUrl() { return `${this.serverUrl}/api/v1`; },
+        timeout: 15000,
     },
 
     // App settings

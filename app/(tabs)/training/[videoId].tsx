@@ -15,7 +15,7 @@ import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing } from '../../../src/constants/colors';
 import { VideoResource } from '../../../src/types';
-import { getVideos, ApiVideo } from '../../../src/services/api';
+import { getVideoById, ApiVideo } from '../../../src/services/api';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,14 +114,15 @@ export default function VideoPlayerScreen() {
     const [video, setVideo] = useState<VideoResource | null>(null);
     const [resolving, setResolving] = useState(true);
 
-    // Resolve the video by fetching all videos from the API, then finding the match.
+    // Resolve the video by fetching from the API by ID.
     useEffect(() => {
         let cancelled = false;
         (async () => {
             try {
-                const apiVideos = await getVideos();
-                const found = apiVideos.map(mapApiVideo).find((v) => v.id === videoId);
-                if (!cancelled) setVideo(found ?? MOCK_VIDEOS.find((v) => v.id === videoId) ?? null);
+                const apiVideo = await getVideoById(videoId!);
+                if (!cancelled) {
+                    setVideo(apiVideo ? mapApiVideo(apiVideo) : MOCK_VIDEOS.find((v) => v.id === videoId) ?? null);
+                }
             } catch {
                 if (!cancelled) setVideo(MOCK_VIDEOS.find((v) => v.id === videoId) ?? null);
             } finally {
