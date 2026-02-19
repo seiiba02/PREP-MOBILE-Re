@@ -26,13 +26,13 @@ export const EmergencySection = ({ onSOSPress }: EmergencySectionProps) => {
                     <EmergencyButton
                         label="BFP"
                         icon="fire"
-                        number={fireContact?.number || '8725-2079'}
+                        number={fireContact?.number || '234'}
                         backgroundColor="#F97316"
                     />
                     <EmergencyButton
                         label="Police"
                         icon="shield-account"
-                        number={policeContact?.number || '8356-9314'}
+                        number={policeContact?.number || '123'}
                         backgroundColor={colors.secondary}
                     />
                 </View>
