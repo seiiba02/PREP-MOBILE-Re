@@ -43,4 +43,38 @@ api.interceptors.response.use(
     }
 );
 
+// ── Video Resources ───────────────────────────────────────────────────────────
+
+export interface ApiVideo {
+    id: number;
+    title: string;
+    description: string | null;
+    filename: string | null;
+    thumbnail: string | null;
+    duration_seconds: number | null;
+    duration_formatted: string | null;
+    category: string | null;
+    is_active: boolean;
+    video_url: string | null;
+    thumbnail_url: string | null;
+    created_at: string | null;
+}
+
+interface ApiResponse<T> {
+    success: boolean;
+    data: T;
+    message?: string;
+}
+
+export async function getVideos(): Promise<ApiVideo[]> {
+    const res = await api.get<ApiResponse<ApiVideo[]>>('/videos');
+    const body = res.data;
+    if (body.success && Array.isArray(body.data)) {
+        return body.data;
+    }
+    // Some wrappers return the array directly
+    if (Array.isArray(body)) return body as unknown as ApiVideo[];
+    return [];
+}
+
 export default api;
