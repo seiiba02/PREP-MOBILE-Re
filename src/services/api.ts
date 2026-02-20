@@ -112,7 +112,7 @@ function normaliseVideoUrls(video: ApiVideo): ApiVideo {
  * Fetch all active training videos from the PREP-V2 backend.
  */
 export async function getVideos(): Promise<ApiVideo[]> {
-    const res = await api.get<ApiResponse<ApiVideo[]>>('/videos');
+    const res = await api.get<ApiResponse<ApiVideo[]>>('videos');
     const body = res.data;
 
     let videos: ApiVideo[] = [];
