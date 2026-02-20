@@ -31,8 +31,8 @@ export const config = {
     // ── physical device (e.g. 'http://192.168.1.100').  For Android
     // ── emulators use 'http://10.0.2.2'; for iOS simulators 'http://localhost'.
     api: {
-        serverUrl: 'http://10.10.10.32:8000',      // PREP-V2 Laravel base URL — must include :8000 (artisan serve port)
-        get baseUrl() { return `${this.serverUrl}/api/v1`; },
+        serverUrl: 'http://10.10.10.32:8000',             // PREP-V2 Laravel base URL — XAMPP Apache on port 80 (no port suffix needed)
+        get baseUrl() { return `${this.serverUrl}/api/v1/`; },
         timeout: 15000,
     },
 
