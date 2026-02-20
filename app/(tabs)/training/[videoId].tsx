@@ -9,13 +9,14 @@ import {
     StatusBar,
     ActivityIndicator,
     ScrollView,
+    Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing } from '../../../src/constants/colors';
 import { VideoResource } from '../../../src/types';
-import { getVideoById, ApiVideo } from '../../../src/services/api';
+import { getVideos, ApiVideo } from '../../../src/services/api';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,51 +32,6 @@ function mapApiVideo(v: ApiVideo): VideoResource {
         createdAt: v.created_at ?? new Date().toISOString(),
     };
 }
-
-// ── Fallback mock data (used when API is unreachable) ─────────────────────────
-
-const MOCK_VIDEOS: VideoResource[] = [
-    {
-        id: '1',
-        title: 'Earthquake Safety 101: Drop, Cover, Hold',
-        description: 'Learn the essential steps to take when an earthquake strikes. Proper technique specifically for high-density areas in San Juan.',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1594498653385-d5172c532c00?auto=format&fit=crop&q=80&w=400',
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-        duration: 185,
-        category: 'Earthquake',
-        createdAt: '2025-10-15',
-    },
-    {
-        id: '2',
-        title: 'How to use a Fire Extinguisher (PASS Method)',
-        description: 'A quick guide on using fire extinguishers correctly during a fire emergency.',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1599708145804-03774619965d?auto=format&fit=crop&q=80&w=400',
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-        duration: 120,
-        category: 'Fire',
-        createdAt: '2025-11-02',
-    },
-    {
-        id: '3',
-        title: 'First Aid: Basic CPR Tutorial',
-        description: 'Cardiopulmonary resuscitation basics for bystanders. Hands-only CPR instructions.',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=400',
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-        duration: 310,
-        category: 'First Aid',
-        createdAt: '2026-01-10',
-    },
-    {
-        id: '4',
-        title: 'Preparing an Emergency Go-Bag',
-        description: 'The complete list of items you need in your disaster preparedness kit.',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1629470948467-9758d57d193d?auto=format&fit=crop&q=80&w=400',
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-        duration: 450,
-        category: 'All',
-        createdAt: '2025-12-20',
-    },
-];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const VIDEO_HEIGHT = (SCREEN_WIDTH * 9) / 16; // 16:9 aspect ratio
@@ -112,19 +68,31 @@ export default function VideoPlayerScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [isError, setIsError] = useState(false);
     const [video, setVideo] = useState<VideoResource | null>(null);
+    const [relatedVideos, setRelatedVideos] = useState<VideoResource[]>([]);
     const [resolving, setResolving] = useState(true);
 
-    // Resolve the video by fetching from the API by ID.
+    // Resolve the video by fetching from the API.
     useEffect(() => {
         let cancelled = false;
         (async () => {
             try {
-                const apiVideo = await getVideoById(videoId!);
-                if (!cancelled) {
-                    setVideo(apiVideo ? mapApiVideo(apiVideo) : MOCK_VIDEOS.find((v) => v.id === videoId) ?? null);
+                // Fetch all and filter to efficiently get both current and related.
+                const apiVideos = await getVideos();
+                if (cancelled) return;
+
+                const resources = apiVideos.map(mapApiVideo);
+                const current = resources.find((v) => v.id === videoId);
+
+                if (current) {
+                    setVideo(current);
+                    setRelatedVideos(resources.filter((v) => v.id !== videoId));
+                } else {
+                    setVideo(null);
+                    setRelatedVideos([]);
                 }
-            } catch {
-                if (!cancelled) setVideo(MOCK_VIDEOS.find((v) => v.id === videoId) ?? null);
+            } catch (err) {
+                console.error('Error fetching videos:', err);
+                if (!cancelled) setVideo(null);
             } finally {
                 if (!cancelled) setResolving(false);
             }
@@ -257,7 +225,7 @@ export default function VideoPlayerScreen() {
                 <View style={styles.divider} />
                 <Text style={styles.sectionLabel}>More Training Videos</Text>
 
-                {MOCK_VIDEOS.filter((v) => v.id !== videoId).map((related) => (
+                {relatedVideos.map((related) => (
                     <TouchableOpacity
                         key={related.id}
                         style={styles.relatedCard}
@@ -267,7 +235,11 @@ export default function VideoPlayerScreen() {
                         })}
                     >
                         <View style={styles.relatedThumbnail}>
-                            <MaterialCommunityIcons name="play-circle" size={28} color="white" />
+                            {related.thumbnailUrl ? (
+                                <Image source={{ uri: related.thumbnailUrl }} style={styles.relatedImage} />
+                            ) : (
+                                <MaterialCommunityIcons name="play-circle" size={28} color="white" />
+                            )}
                         </View>
                         <View style={styles.relatedInfo}>
                             <Text style={styles.relatedTitle} numberOfLines={2}>
@@ -421,6 +393,11 @@ const styles = StyleSheet.create({
         backgroundColor: colors.secondary,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    relatedImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
     },
     relatedInfo: {
         flex: 1,
