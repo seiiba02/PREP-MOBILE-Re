@@ -8,7 +8,7 @@ import { sharedStyles } from '../_layout';
 import { useAlerts } from '../../../src/hooks/useAlerts';
 import { SharedHeader } from '../../../src/components/SharedHeader';
 import { getVideos, ApiVideo } from '../../../src/services/api';
-
+import {useAuth} from '../../../src/contexts/AuthContext';
 const CATEGORIES = ['All', 'Earthquake', 'Fire', 'Flood', 'First Aid'];
 
 function mapApiVideo(v: ApiVideo): VideoResource {
@@ -31,6 +31,7 @@ export default function TrainingScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const { unreadCount } = useAlerts();
     const router = useRouter();
+    const {user} = useAuth();
 
     const fetchVideos = useCallback(async (isRefresh = false) => {
         if (isRefresh) setRefreshing(true);
@@ -78,7 +79,7 @@ export default function TrainingScreen() {
             >
                 <SharedHeader />
                 <View style={[sharedStyles.whiteContainer]}>
-                    <Text style={sharedStyles.greeting}>Hello, Sambajunnie Boi!</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}</Text>
                     <View style={sharedStyles.separator} />
 
                     <Text style={sharedStyles.sectionTitle}>Training Resources</Text>
