@@ -17,8 +17,6 @@ export default function HomeScreen() {
     return (
 
         <View style={sharedStyles.container}>
-            <SharedHeader />
-
             {/* Main Content Area */}
             <ScrollView
                 style={sharedStyles.mainContent}
@@ -68,7 +66,7 @@ export default function HomeScreen() {
                     {/* Weather Card */}
                     <View style={styles.weatherCardWrapper}>
                         <ImageBackground
-                            source={{ uri: 'https://upload.wikimedia.org/wikipedia/en/c/cd/Pinaglabanan_Shrine_%28San_Juan%3B_2010-08-30%29_01.jpg' }}
+                            source={require('../../assets/images/Pinaglabanan_Shrine_(San_Juan;_2010-08-30)_01 (1).jpg')}
                             style={styles.weatherBg}
                             imageStyle={{ borderRadius: 20 }}
                         >
@@ -167,6 +165,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 10,
         elevation: 5,
+        overflow: 'hidden'
     },
     weatherBg: {
         width: '100%',
