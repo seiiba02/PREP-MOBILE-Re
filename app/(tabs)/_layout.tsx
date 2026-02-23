@@ -40,6 +40,7 @@ export default function TabLayout() {
                     title: 'Contact',
                     tabBarIcon: ({ color, focused }) => (
                         <View style={styles.iconContainer}>
+                            {focused && <View style={styles.activeIndicator} />}
                             <MaterialCommunityIcons
                                 name={focused ? "phone" : "phone-outline"}
                                 size={28}
@@ -86,6 +87,7 @@ export default function TabLayout() {
                     title: 'Profile',
                     tabBarIcon: ({ color, focused }) => (
                         <View style={styles.iconContainer}>
+                            {focused && <View style={styles.activeIndicator} />}
                             <MaterialCommunityIcons
                                 name={focused ? "account" : "account-outline"}
                                 size={28}
