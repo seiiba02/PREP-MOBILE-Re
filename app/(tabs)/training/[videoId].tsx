@@ -172,7 +172,7 @@ export default function VideoPlayerScreen() {
                     style={styles.videoPlayer}
                     useNativeControls
                     resizeMode={ResizeMode.CONTAIN}
-                    shouldPlay={false}
+                    shouldPlay={true}
                     onPlaybackStatusUpdate={onPlaybackStatusUpdate}
                     onError={onError}
                     posterSource={{ uri: video.thumbnailUrl }}
