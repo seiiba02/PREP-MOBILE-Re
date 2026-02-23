@@ -7,6 +7,7 @@ import { SharedHeader } from '../../src/components/SharedHeader';
 import { router } from 'expo-router';
 import { colors } from '../../src/constants/colors';
 import { MapWrapper, isDevBuild } from '../../src/components/map/MapWrapper';
+import { useAuth } from '../../src/contexts/AuthContext';
 
 
 const MapPreviewCard = isDevBuild
@@ -14,6 +15,8 @@ const MapPreviewCard = isDevBuild
     : () => null;
 
 export default function HomeScreen() {
+    const { user } = useAuth();
+
     return (
 
         <View style={sharedStyles.container}>
@@ -25,7 +28,7 @@ export default function HomeScreen() {
             >
                 <SharedHeader />
                 <View style={[sharedStyles.whiteContainer]}><Text style={sharedStyles.sectionTitle}>Dashboard</Text>
-                    <Text style={sharedStyles.greeting}>Hello, SambajunnieBoi!</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName || 'Resident'}!</Text>
                     <View style={sharedStyles.separator} />
                     <Text style={sharedStyles.sectionTitle}>Dashboard</Text>
 
@@ -50,7 +53,7 @@ export default function HomeScreen() {
                     </View>
 
 
-                    {/* Map Preview Card — live MapLibre map or placeholder */}
+                    {/* Map Preview Card */}
                     <View style={styles.mapCard}>
                         <MapWrapper
                             fallbackTitle="San Juan City Map"
