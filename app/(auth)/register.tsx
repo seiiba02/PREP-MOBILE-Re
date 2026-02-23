@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing } from '../../src/constants/colors';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { extractApiError } from '../../src/services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { sharedStyles } from './_layout';
 
@@ -22,6 +23,7 @@ export default function RegisterScreen() {
 
     const [formData, setFormData] = useState({
         fullName: '',
+        contactNumber: '',
         barangay: '',
         address: '',
         zipCode: '',
@@ -33,9 +35,9 @@ export default function RegisterScreen() {
     const [showBarangayPicker, setShowBarangayPicker] = useState(false);
 
     const handleRegister = async () => {
-        const { fullName, barangay, address, password, confirmPassword } = formData;
+        const { fullName, contactNumber, barangay, address, password, confirmPassword } = formData;
 
-        if (!fullName || !barangay || !address || !password) {
+        if (!fullName || !contactNumber || !barangay || !address || !password || !confirmPassword) {
             setError('Please fill in all fields');
             return;
         }
@@ -47,10 +49,11 @@ export default function RegisterScreen() {
 
         setError('');
         try {
-            await register({ fullName, barangay, address, password });
-            router.replace('/(auth)/OTP');
+            await register({ fullName, contactNumber, barangay, address, password});
+            // Registration auto-logs in via AuthContext — go straight to main app
+            router.replace('/(tabs)');
         } catch (err) {
-            setError('Registration failed. Please try again.');
+            setError(extractApiError(err));
         }
     };
 
@@ -81,6 +84,18 @@ export default function RegisterScreen() {
                                         placeholder="Juan Dela Cruz"
                                         value={formData.fullName}
                                         onChangeText={(text) => setFormData({ ...formData, fullName: text })}
+                                    />
+                                </View>
+
+                                <Text style={styles.label}>Contact Number</Text>
+                                <View style={styles.inputContainer}>
+                                    <MaterialCommunityIcons name="phone" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="09XXXXXXXXX"
+                                        value={formData.contactNumber}
+                                        onChangeText={(text) => setFormData({ ...formData, contactNumber: text })}
+                                        keyboardType="phone-pad"
                                     />
                                 </View>
 
