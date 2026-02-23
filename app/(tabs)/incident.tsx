@@ -5,8 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing } from '../../src/constants/colors';
 import { sharedStyles } from './_layout';
 import { SharedHeader } from '../../src/components/SharedHeader';
+import {useAuth} from '../../src/contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
+
 
 // ─── Incident Type Config ───────────────────────────────────────────────
 const INCIDENT_TYPES: Record<string, { icon: string; color: string; label: string }> = {
@@ -113,6 +115,7 @@ const MAX_TYPE_COUNT = Math.max(...TYPE_COUNTS.map(([, count]) => count));
 
 // ─── Component ──────────────────────────────────────────────────────────
 export default function IncidentScreen() {
+    const {user} = useAuth();
 
     const getSeverityColor = (severity: string) => {
         switch (severity) {
@@ -134,7 +137,7 @@ export default function IncidentScreen() {
             >
                 <SharedHeader />
                 <View style={[sharedStyles.whiteContainer]}>
-                    <Text style={sharedStyles.greeting}>Hello, Sambajunnie Boi!</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}</Text>
                     <View style={sharedStyles.separator} />
 
                     <Text style={sharedStyles.sectionTitle}>Incident Report</Text>
