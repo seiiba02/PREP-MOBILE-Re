@@ -6,10 +6,12 @@ import { SharedHeader } from '../../../src/components/SharedHeader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { EmergencySection } from '../../../src/components/emergency/EmergencySection';
 import { SOSModal } from '../../../src/components/SOSModal';
+import {useAuth} from '../../../src/contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ContactDirectoryScreen() {
+    const {user} = useAuth();
     const router = useRouter();
     const [sosModalVisible, setSosModalVisible] = useState(false);
 
@@ -44,7 +46,7 @@ export default function ContactDirectoryScreen() {
 
                 <View style={sharedStyles.whiteContainer} pointerEvents='box-none'>
 
-                    <Text style={sharedStyles.greeting}>Hello, {'Sambajunnie Boi'}!</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}</Text>
                     <View style={sharedStyles.separator} />
 
                     <Text style={sharedStyles.sectionTitle}>Contact Directory</Text>
