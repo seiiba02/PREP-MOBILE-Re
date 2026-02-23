@@ -15,6 +15,11 @@ export default function residentQ() {
         contactNumber: '',
         otp: '',
     });
+
+    // TODO: OTP verification is a placeholder — no backend endpoint exists yet.
+    // The register flow currently bypasses this screen entirely (auto-login).
+    // When OTP is implemented on the backend, wire the Verify button to the
+    // appropriate endpoint and re-enable the register → OTP navigation.
     return (
         <LinearGradient colors={['#FF4D4D', '#1B2560']} style={styles.container}>
             <SafeAreaView >
