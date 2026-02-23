@@ -87,7 +87,7 @@ export default function ProfileScreen() {
                                 thumbColor={locationEnabled ? colors.secondary : '#f4f3f4'}
                             />
                         </View>
-                        <ProfileItem icon="logout-variant" title="Log Out" onPress={() => router.replace('/(auth)/login')} isDestructive={true} />
+                        <ProfileItem icon="logout-variant" title="Log Out" onPress={async () => { await logout(); router.replace('/(auth)/login'); }} isDestructive={true} />
                     </View>
                 </View>
                 <Text style={styles.versionText}>PREP Mobile v1.0.0 (Production Build)</Text>
