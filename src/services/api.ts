@@ -64,14 +64,131 @@ api.interceptors.request.use(
 // Add a response interceptor for global error handling
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
         if (error.response?.status === 401) {
-            // Handle unauthorized (session expired)
-            // Potentially trigger a logout or token refresh
+            // Session expired or invalid token — clear stored auth
+            try {
+                await AsyncStorage.removeItem('@PREP_AUTH_DATA');
+            } catch (_) { /* best-effort */ }
         }
         return Promise.reject(error);
     }
 );
+
+/**
+ * Extract a human-readable error message from an Axios error.
+ * Handles Laravel validation (422) and custom API error envelope.
+ */
+export function extractApiError(error: unknown): string {
+    if (!axios.isAxiosError(error)) return 'An unexpected error occurred.';
+    const data = error.response?.data;
+    if (!data) {
+        if (error.code === 'ECONNABORTED') return 'Request timed out. Check your connection.';
+        if (error.message?.includes('Network Error')) return 'Cannot reach the server. Check your connection.';
+        return error.message || 'Network error.';
+    }
+    // Laravel validation: { message: string, errors: Record<string, string[]> }
+    if (error.response?.status === 422 && data.errors) {
+        const firstField = Object.keys(data.errors)[0];
+        return data.errors[firstField]?.[0] ?? data.message ?? 'Validation failed.';
+    }
+    // Custom API error envelope: { success: false, error: { message } }
+    if (data.error?.message) return data.error.message;
+    if (data.message) return data.message;
+    return 'Something went wrong.';
+}
+
+// ── Resident Authentication ──────────────────────────────────────────────────
+
+export interface ApiBarangay {
+    id: number | null;
+    name: string | null;
+}
+
+export interface ApiResident {
+    id: number;
+    full_name: string;
+    contact_number: string | null;
+    barangay: ApiBarangay | null;
+    settings: {
+        notifications_enabled: boolean;
+    };
+    created_at: string | null;
+}
+
+interface LoginPayload {
+    identifier: string;
+    password: string;
+    device_name: string;
+}
+
+interface RegisterPayload {
+    full_name: string;
+    contact_number: string;
+    password: string;
+    password_confirmation: string;
+    barangay_name?: string;
+    barangay_id?: number;
+    device_name: string;
+}
+
+interface AuthResponse {
+    resident: ApiResident;
+    token: string;
+}
+
+/**
+ * Login a resident via contact number.
+ */
+export async function loginResident(payload: LoginPayload): Promise<AuthResponse> {
+    const res = await api.post<ApiResponse<AuthResponse>>('auth/residents/login', {
+        contact_number: payload.identifier,
+        password: payload.password,
+        device_name: payload.device_name,
+    });
+    return res.data.data;
+}
+
+/**
+ * Register a new resident account.
+ */
+export async function registerResident(payload: RegisterPayload): Promise<AuthResponse> {
+    const body: Record<string, unknown> = {
+        full_name: payload.full_name,
+        contact_number: payload.contact_number,
+        password: payload.password,
+        password_confirmation: payload.password_confirmation,
+        device_name: payload.device_name,
+    };
+    if (payload.barangay_id) body.barangay_id = payload.barangay_id;
+    if (payload.barangay_name) body.barangay_name = payload.barangay_name;
+
+    const res = await api.post<ApiResponse<AuthResponse>>('auth/residents/register', body);
+    return res.data.data;
+}
+
+/**
+ * Fetch the authenticated resident's profile.
+ */
+export async function getResidentProfile(): Promise<ApiResident> {
+    const res = await api.get<ApiResponse<ApiResident>>('residents/profile');
+    return res.data.data;
+}
+
+/**
+ * Update the authenticated resident's profile.
+ */
+export async function updateResidentProfile(
+    data: Partial<{
+        full_name: string;
+        contact_number: string;
+        barangay_id: number;
+        notification_enabled: boolean;
+    }>,
+): Promise<ApiResident> {
+    const res = await api.put<ApiResponse<ApiResident>>('residents/profile', data);
+    return res.data.data;
+}
 
 // ── Video Resources ───────────────────────────────────────────────────────────
 
