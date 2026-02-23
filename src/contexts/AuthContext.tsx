@@ -87,18 +87,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const register = async (userData: Partial<User> & { password: string }) => {
         setState(prev => ({ ...prev, isLoading: true }));
         try {
-            // TODO: collect `email` and `contact_number` in the register form.
-            // For now, derive a placeholder email so the backend validates.
-            const contactNumber = userData.contactNumber
-                ?? userData['contactNumber' as keyof typeof userData] as string
-                ?? '';
-            const email = contactNumber.includes('@')
-                ? contactNumber
-                : `${contactNumber.replace(/\D/g, '')}@prep.local`;
+            const contactNumber = userData.contactNumber ?? '';
 
             const payload = await registerResident({
                 full_name: userData.fullName ?? '',
-                email,
                 contact_number: contactNumber,
                 password: userData.password,
                 password_confirmation: userData.password,
