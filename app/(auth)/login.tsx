@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing } from '../../src/constants/colors';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { extractApiError } from '../../src/services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { sharedStyles } from './_layout';
 
@@ -28,7 +29,7 @@ export default function LoginScreen() {
             await login(contactNumber, password);
             router.replace('/(tabs)');
         } catch (err) {
-            setError('Invalid contact number or password');
+            setError(extractApiError(err));
         }
     };
 
