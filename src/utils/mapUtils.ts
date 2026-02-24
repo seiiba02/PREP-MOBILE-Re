@@ -151,6 +151,42 @@ export function getCityBoundsArray(): [[number, number], [number, number]] {
     return [[minLng, minLat], [maxLng, maxLat]];
 }
 
+/**
+ * Computes the bounding box for a specific barangay polygon.
+ */
+export function getBarangayBounds(name: string): BoundingBox | null {
+    const feature = getBarangayByName(name);
+    if (!feature || feature.geometry.type !== 'Polygon') return null;
+
+    let minLng = Infinity;
+    let minLat = Infinity;
+    let maxLng = -Infinity;
+    let maxLat = -Infinity;
+
+    const coords = feature.geometry.coordinates as number[][][];
+    for (const ring of coords) {
+        for (const coord of ring) {
+            const lng = coord[0];
+            const lat = coord[1];
+            if (lng < minLng) minLng = lng;
+            if (lat < minLat) minLat = lat;
+            if (lng > maxLng) maxLng = lng;
+            if (lat > maxLat) maxLat = lat;
+        }
+    }
+
+    return { minLng, minLat, maxLng, maxLat };
+}
+
+/**
+ * Returns the bounding box of a specific barangay as a MapLibre-compatible bounds array.
+ */
+export function getBarangayBoundsArray(name: string): [[number, number], [number, number]] | null {
+    const bounds = getBarangayBounds(name);
+    if (!bounds) return null;
+    return [[bounds.minLng, bounds.minLat], [bounds.maxLng, bounds.maxLat]];
+}
+
 // ─── Future: Barangay Selection ──────────────────────────────────────────────
 
 /**
