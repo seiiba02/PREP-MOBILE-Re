@@ -1,41 +1,20 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { SOSButton } from './SOSButton';
-import { EmergencyButton } from './EmergencyButton';
-import { emergencyContacts } from '../../constants/emergencyContacts';
-import { spacing, colors } from '../../constants/colors';
+import { colors } from '../../constants/colors';
 
 interface EmergencySectionProps {
     onSOSPress: () => void;
 }
 
 export const EmergencySection = ({ onSOSPress }: EmergencySectionProps) => {
-    // Find specific contacts from central constants
-    const fireContact = emergencyContacts.find(c => c.category === 'fire');
-    const policeContact = emergencyContacts.find(c => c.category === 'police');
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Emergency Services</Text>
+            <Text style={styles.title}>Emergency Service</Text>
             <View style={styles.card}>
                 {/* Primary: SOS */}
                 <SOSButton onPress={onSOSPress} />
-
-                {/* Secondary: Fire & Police */}
-                <View style={styles.secondaryRow}>
-                    <EmergencyButton
-                        label="BFP"
-                        icon="fire"
-                        number={fireContact?.number || '234'}
-                        backgroundColor="#F97316"
-                    />
-                    <EmergencyButton
-                        label="Police"
-                        icon="shield-account"
-                        number={policeContact?.number || '123'}
-                        backgroundColor={colors.secondary}
-                    />
-                </View>
                 <Text style={styles.footerText}>Tap to call emergency services directly</Text>
             </View>
         </View>
