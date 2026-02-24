@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing } from '../../constants/colors';
 import { config } from '../../constants/config';
-import { getCityOutlineGeoJSON, getWaterwaysGeoJSON } from '../../utils/mapUtils';
+import { getCityOutlineGeoJSON, getWaterwaysGeoJSON, getBarangayGeoJSON, getBarangayBoundsArray } from '../../utils/mapUtils';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LOCATIONS = [
     {
@@ -59,7 +60,25 @@ const markerColor = (type: string) => {
 export function FullMapView() {
     const mapRef = useRef<MapLibreGL.MapViewRef>(null);
     const [mapStyle, setMapStyle] = useState<'liberty' | 'positron'>('liberty');
-    const cityOutline = useMemo(() => getCityOutlineGeoJSON(), []);
+    const { user } = useAuth();
+
+    const displayGeoJSON = useMemo(() => {
+        if (user?.barangay) {
+            const barangayData = getBarangayGeoJSON(user.barangay);
+            if (barangayData.features.length > 0) {
+                return barangayData;
+            }
+        }
+        return getCityOutlineGeoJSON();
+    }, [user?.barangay]);
+
+    const bounds = useMemo(() => {
+        if (user?.barangay) {
+            return getBarangayBoundsArray(user.barangay);
+        }
+        return null;
+    }, [user?.barangay]);
+
     const waterways = useMemo(() => getWaterwaysGeoJSON(), []);
 
     const toggleMapStyle = () =>
@@ -80,7 +99,16 @@ export function FullMapView() {
                 attributionEnabled={false}
             >
                 <MapLibreGL.Camera
-                    defaultSettings={{
+                    defaultSettings={bounds ? {
+                        bounds: {
+                            sw: bounds[0],
+                            ne: bounds[1],
+                            paddingLeft: 40,
+                            paddingRight: 40,
+                            paddingTop: 40,
+                            paddingBottom: 40
+                        },
+                    } : {
                         centerCoordinate: config.maplibre.center,
                         zoomLevel: config.maplibre.zoom,
                     }}
@@ -88,10 +116,10 @@ export function FullMapView() {
                     maxZoomLevel={config.maplibre.maxZoom}
                 />
 
-                {/* San Juan City Outline — all 21 barangay polygons */}
+                {/* San Juan City Outline (or User's Barangay) */}
                 <MapLibreGL.ShapeSource
                     id="city-outline-source"
-                    shape={cityOutline as any}
+                    shape={displayGeoJSON as any}
                 >
                     <MapLibreGL.FillLayer
                         id="city-outline-fill"
