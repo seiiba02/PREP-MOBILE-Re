@@ -4,14 +4,32 @@ import MapLibreGL from '@maplibre/maplibre-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { config } from '../../constants/config';
 import { colors } from '../../constants/colors';
-import { getCityOutlineGeoJSON } from '../../utils/mapUtils';
+import { useAuth } from '../../contexts/AuthContext';
+import { getCityOutlineGeoJSON, getBarangayGeoJSON, getBarangayBoundsArray } from '../../utils/mapUtils';
 
 interface MapPreviewCardProps {
     onPress?: () => void;
 }
 
 export function MapPreviewCard({ onPress }: MapPreviewCardProps) {
-    const cityOutline = useMemo(() => getCityOutlineGeoJSON(), []);
+    const { user } = useAuth();
+
+    const displayGeoJSON = useMemo(() => {
+        if (user?.barangay) {
+            const barangayData = getBarangayGeoJSON(user.barangay);
+            if (barangayData.features.length > 0) {
+                return barangayData;
+            }
+        }
+        return getCityOutlineGeoJSON();
+    }, [user?.barangay]);
+
+    const bounds = useMemo(() => {
+        if (user?.barangay) {
+            return getBarangayBoundsArray(user.barangay);
+        }
+        return null;
+    }, [user?.barangay]);
 
     return (
         <TouchableOpacity
@@ -32,7 +50,16 @@ export function MapPreviewCard({ onPress }: MapPreviewCardProps) {
                     compassEnabled={false}
                 >
                     <MapLibreGL.Camera
-                        defaultSettings={{
+                        defaultSettings={bounds ? {
+                            bounds: {
+                                sw: bounds[0],
+                                ne: bounds[1],
+                                paddingLeft: 20,
+                                paddingRight: 20,
+                                paddingTop: 20,
+                                paddingBottom: 20
+                            },
+                        } : {
                             centerCoordinate: config.maplibre.center,
                             zoomLevel: config.maplibre.previewZoom,
                         }}
@@ -40,7 +67,7 @@ export function MapPreviewCard({ onPress }: MapPreviewCardProps) {
 
                     <MapLibreGL.ShapeSource
                         id="preview-outline-source"
-                        shape={cityOutline as any}
+                        shape={displayGeoJSON as any}
                     >
                         <MapLibreGL.FillLayer
                             id="preview-outline-fill"
