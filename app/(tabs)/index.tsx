@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { colors } from '../../src/constants/colors';
 import { MapWrapper, isDevBuild } from '../../src/components/map/MapWrapper';
 import { useAuth } from '../../src/contexts/AuthContext';
-
+import { getBarangayImage } from '../../src/constants/barangayImages';
 
 const MapPreviewCard = isDevBuild
     ? require('../../src/components/map/MapPreviewCard').MapPreviewCard
@@ -69,7 +69,7 @@ export default function HomeScreen() {
                     {/* Weather Card */}
                     <View style={styles.weatherCardWrapper}>
                         <ImageBackground
-                            source={require('../../assets/images/Pinaglabanan_Shrine_(San_Juan;_2010-08-30)_01 (1).jpg')}
+                            source={getBarangayImage(user?.barangay)}
                             style={styles.weatherBg}
                             imageStyle={{ borderRadius: 20 }}
                         >
@@ -100,7 +100,7 @@ export default function HomeScreen() {
                                 </View>
 
                                 <View style={styles.weatherBottom}>
-                                    <Text style={styles.locationName}>Pinagsama</Text>
+                                    <Text style={styles.locationName}>{user?.barangay || 'San Juan City'}</Text>
                                 </View>
                             </LinearGradient>
                         </ImageBackground>
