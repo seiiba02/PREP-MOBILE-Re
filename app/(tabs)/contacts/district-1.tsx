@@ -7,8 +7,9 @@ import { sharedStyles } from '../_layout';
 import { DISTRICT_1_BARANGAYS } from '../../../src/constants/barangays';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../../src/constants/colors';
-
+import { useAuth } from '../../../src/contexts/AuthContext';
 export default function District1Screen() {
+    const { user } = useAuth();
     const router = useRouter();
     return (
         <View style={sharedStyles.container}>
@@ -20,7 +21,7 @@ export default function District1Screen() {
             >
                 <SharedHeader />
                 <View style={sharedStyles.whiteContainer}>
-                    <Text style={sharedStyles.greeting}>Hello, {'Sambajunnie Boi'}!</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}</Text>
                     <View style={sharedStyles.separator} />
                     <View style={styles.titleContainer}>
                         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
