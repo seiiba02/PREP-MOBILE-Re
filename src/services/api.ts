@@ -244,11 +244,6 @@ export async function getVideos(): Promise<ApiVideo[]> {
     return videos.map(normaliseVideoUrls);
 }
 
-/**
- * Fetch a single video by its ID.
- * Falls back to fetching all and filtering when a dedicated endpoint
- * is not available.
- */
 export async function getVideoById(id: number | string): Promise<ApiVideo | null> {
     // The public list endpoint already exists; filter client-side.
     const videos = await getVideos();
