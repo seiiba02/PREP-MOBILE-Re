@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../../src/contexts/AuthContext';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SharedHeader } from '../../../src/components/SharedHeader';
 import { BarangayCard } from '../../../src/components/BarangayCard';
@@ -8,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../../src/constants/colors';
 
 export default function District2Screen() {
+    const { user } = useAuth();
     const router = useRouter();
     return (
         <View style={sharedStyles.container}>
@@ -19,7 +21,7 @@ export default function District2Screen() {
             >
                 <SharedHeader />
                 <View style={sharedStyles.whiteContainer}>
-                    <Text style={sharedStyles.greeting}>Hello, {'Sambajunnie Boi'}!</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}!</Text>
                     <View style={sharedStyles.separator} />
 
                     <View style={styles.titleContainer}>
