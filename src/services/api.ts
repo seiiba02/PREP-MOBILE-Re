@@ -255,4 +255,26 @@ export async function getVideoById(id: number | string): Promise<ApiVideo | null
     return videos.find((v) => String(v.id) === String(id)) ?? null;
 }
 
+// ── Evacuation Centers ────────────────────────────────────────────────────────
+export interface ApiEvacuationCenter {
+    id: number;
+    facility: string;
+    address: string | null;
+    barangay_id: number | null;
+    type: string;
+    location_latitude: number;
+    location_longitude: number;
+    capacity: number | null;
+    type_of_building: string | null;
+    available: boolean;
+    sponsor_agency: string | null;
+    status: string;
+    remarks: string | null;
+}
+
+export async function getEvacuationCenters(): Promise<ApiEvacuationCenter[]> {
+    const res = await api.get<{ data: ApiEvacuationCenter[]; count: number }>('evacuation-centers');
+    return res.data.data;
+}
+
 export default api;

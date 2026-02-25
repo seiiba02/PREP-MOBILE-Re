@@ -1,39 +1,14 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing } from '../../constants/colors';
 import { config } from '../../constants/config';
-import { getCityOutlineGeoJSON, getWaterwaysGeoJSON } from '../../utils/mapUtils';
+import { getCityOutlineGeoJSON, getWaterwaysGeoJSON, getBarangayGeoJSON, getBarangayBoundsArray } from '../../utils/mapUtils';
 import { useAuth } from '../../contexts/AuthContext';
+import { getEvacuationCenters, ApiEvacuationCenter } from '../../services/api';
 
-const LOCATIONS = [
-    {
-        id: '1',
-        title: 'San Juan City Hall',
-        coordinate: [121.0331, 14.6053] as [number, number],
-        type: 'barangay_hall',
-    },
-    {
-        id: '2',
-        title: 'San Juan Medical Center',
-        coordinate: [121.0354, 14.6015] as [number, number],
-        type: 'hospital',
-    },
-    {
-        id: '3',
-        title: 'Pinaglabanan Memorial Shrine',
-        coordinate: [121.0305, 14.6042] as [number, number],
-        type: 'evacuation',
-    },
-    {
-        id: '4',
-        title: 'San Juan Fire Station',
-        coordinate: [121.0312, 14.6067] as [number, number],
-        type: 'fire_station',
-    },
-];
 
 const markerIcon = (type: string) => {
     switch (type) {
@@ -60,9 +35,36 @@ const markerColor = (type: string) => {
 export function FullMapView() {
     const mapRef = useRef<MapLibreGL.MapViewRef>(null);
     const [mapStyle, setMapStyle] = useState<'liberty' | 'positron'>('liberty');
+    const [isSingleBarangayView, setIsSingleBarangayView] = useState(false);
+    const [showEvacuationCenters, setShowEvacuationCenters] = useState(false);
+    const [evacuationCenters, setEvacuationCenters] = useState<ApiEvacuationCenter[]>([]);
     const { user } = useAuth();
 
-    const cityOutline = useMemo(() => getCityOutlineGeoJSON(), []);
+    useEffect(() => {
+        if (showEvacuationCenters && evacuationCenters.length === 0) {
+            getEvacuationCenters()
+                .then(setEvacuationCenters)
+                .catch((e) => console.error("Failed to load evacuation centers:", e));
+        }
+    }, [showEvacuationCenters, evacuationCenters.length]);
+
+    const displayOutline = useMemo(() => {
+        if (isSingleBarangayView && user?.barangay) {
+            const barangayData = getBarangayGeoJSON(user.barangay);
+            if (barangayData.features.length > 0) {
+                return barangayData;
+            }
+        }
+        return getCityOutlineGeoJSON();
+    }, [isSingleBarangayView, user?.barangay]);
+
+    const currentBounds = useMemo(() => {
+        if (isSingleBarangayView && user?.barangay) {
+            return getBarangayBoundsArray(user.barangay);
+        }
+        return null;
+    }, [isSingleBarangayView, user?.barangay]);
+
     const waterways = useMemo(() => getWaterwaysGeoJSON(), []);
 
     const toggleMapStyle = () =>
@@ -83,18 +85,27 @@ export function FullMapView() {
                 attributionEnabled={false}
             >
                 <MapLibreGL.Camera
-                    defaultSettings={{
-                        centerCoordinate: config.maplibre.center,
-                        zoomLevel: config.maplibre.zoom,
-                    }}
-                    minZoomLevel={config.maplibre.minZoom}
-                    maxZoomLevel={config.maplibre.maxZoom}
+                    bounds={
+                        currentBounds
+                            ? {
+                                sw: currentBounds[0],
+                                ne: currentBounds[1],
+                                paddingTop: 50,
+                                paddingBottom: 50,
+                                paddingLeft: 50,
+                                paddingRight: 50,
+                            }
+                            : undefined
+                    }
+                    centerCoordinate={!currentBounds ? config.maplibre.center : undefined}
+                    zoomLevel={!currentBounds ? config.maplibre.zoom : undefined}
+                    animationDuration={800}
                 />
 
                 {/* San Juan City Outline (or User's Barangay) */}
                 <MapLibreGL.ShapeSource
                     id="city-outline-source"
-                    shape={cityOutline as any}
+                    shape={displayOutline as any}
                 >
                     <MapLibreGL.FillLayer
                         id="city-outline-fill"
@@ -130,37 +141,56 @@ export function FullMapView() {
                     />
                 </MapLibreGL.ShapeSource>
 
-                {/* Location Markers */}
-                {LOCATIONS.map((loc) => (
+                <MapLibreGL.UserLocation visible={true} />
+
+                {/* Evacuation Centers Markers */}
+                {showEvacuationCenters && evacuationCenters.map((center) => (
                     <MapLibreGL.PointAnnotation
-                        key={loc.id}
-                        id={`marker-${loc.id}`}
-                        coordinate={loc.coordinate}
-                        title={loc.title}
+                        key={center.id}
+                        id={`evac-${center.id}`}
+                        coordinate={[center.location_longitude, center.location_latitude]}
                     >
-                        <View
-                            style={[
-                                styles.markerContainer,
-                                { backgroundColor: markerColor(loc.type) },
-                            ]}
-                        >
-                            <MaterialCommunityIcons
-                                name={markerIcon(loc.type) as any}
-                                size={20}
-                                color="white"
-                            />
+                        <View style={[styles.markerContainer, { backgroundColor: markerColor('evacuation') }]}>
+                            <MaterialCommunityIcons name={markerIcon('evacuation') as any} size={16} color="white" />
                         </View>
                     </MapLibreGL.PointAnnotation>
                 ))}
-
-                <MapLibreGL.UserLocation visible={true} />
             </MapLibreGL.MapView>
 
             {/* Floating Controls */}
             <SafeAreaView style={styles.controls}>
                 <View style={styles.topControls}>
+                    {user?.barangay && (
+                        <TouchableOpacity
+                            style={[
+                                styles.controlButton,
+                                isSingleBarangayView && { backgroundColor: colors.secondary }
+                            ]}
+                            onPress={() => setIsSingleBarangayView(!isSingleBarangayView)}
+                        >
+                            <MaterialCommunityIcons
+                                name={isSingleBarangayView ? 'map-marker-radius' : 'map-marker-radius-outline'}
+                                size={24}
+                                color={isSingleBarangayView ? 'white' : colors.secondary}
+                            />
+                        </TouchableOpacity>
+                    )}
                     <TouchableOpacity
-                        style={styles.controlButton}
+                        style={[
+                            styles.controlButton,
+                            { marginTop: 10 },
+                            showEvacuationCenters && { backgroundColor: colors.success }
+                        ]}
+                        onPress={() => setShowEvacuationCenters(!showEvacuationCenters)}
+                    >
+                        <MaterialCommunityIcons
+                            name={showEvacuationCenters ? 'home-alert' : 'home-alert-outline'}
+                            size={24}
+                            color={showEvacuationCenters ? 'white' : colors.secondary}
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.controlButton, { marginTop: 10 }]}
                         onPress={toggleMapStyle}
                     >
                         <MaterialCommunityIcons
