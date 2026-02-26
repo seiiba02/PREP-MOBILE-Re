@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,11 @@ export default function AlertsScreen() {
     const { alerts, isLoading, refreshAlerts, markAsRead, markAllAsRead } = useAlerts();
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
+
+    // Auto-refresh whenever the alerts screen is opened
+    useEffect(() => {
+        refreshAlerts();
+    }, []);
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -59,7 +64,7 @@ export default function AlertsScreen() {
                 style={[
                     styles.alertCard,
                     { backgroundColor: styles_item.bg, borderColor: styles_item.border },
-                    !item.isRead && styles.unreadBorder
+                    !item.isRead && { borderLeftWidth: 5, borderLeftColor: styles_item.color }
                 ]}
                 onPress={() => markAsRead(item.id)}
             >
@@ -78,7 +83,7 @@ export default function AlertsScreen() {
                 <Text style={[styles.title, !item.isRead && styles.unreadText]}>{item.title}</Text>
                 <Text style={styles.message}>{item.message}</Text>
 
-                {!item.isRead && <View style={styles.unreadIndicator} />}
+                {!item.isRead && <View style={[styles.unreadIndicator, { backgroundColor: styles_item.color }]} />}
             </TouchableOpacity>
         );
     };
@@ -150,10 +155,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         position: 'relative',
     },
-    unreadBorder: {
-        borderLeftWidth: 5,
-        borderLeftColor: colors.primary,
-    },
+
     alertHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -195,7 +197,6 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: colors.primary,
     },
     emptyContainer: {
         alignItems: 'center',
