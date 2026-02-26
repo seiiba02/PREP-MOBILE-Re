@@ -27,7 +27,7 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 <SharedHeader />
-                <View style={[sharedStyles.whiteContainer]}><Text style={sharedStyles.sectionTitle}>Dashboard</Text>
+                <View style={[sharedStyles.whiteContainer]}>
                     <Text style={sharedStyles.greeting}>Hello, {user?.fullName || 'Resident'}!</Text>
                     <View style={sharedStyles.separator} />
                     <Text style={sharedStyles.sectionTitle}>Dashboard</Text>
