@@ -272,4 +272,53 @@ export async function getEvacuationCenters(): Promise<ApiEvacuationCenter[]> {
     return res.data.data;
 }
 
+// ── Device Token Registration ─────────────────────────────────────────────────
+
+/**
+ * Register the device's Expo push token with the backend so it can
+ * target this device for notifications.
+ */
+export async function registerDeviceToken(token: string): Promise<void> {
+    await api.post<ApiResponse<null>>('residents/device-token', {
+        device_token: token,
+    });
+}
+
+// ── Alerts ────────────────────────────────────────────────────────────────────
+
+export interface ApiAlert {
+    id: number;
+    title: string;
+    message: string;
+    severity: string;
+    type: string;
+    scope: { target: string; id: number | null };
+    timestamp: string;
+    read_count: number;
+}
+
+/**
+ * Fetch alerts scoped to the authenticated resident's barangay (last 48 h).
+ */
+export async function getAlerts(): Promise<ApiAlert[]> {
+    const res = await api.get<ApiResponse<ApiAlert[]>>('alerts');
+    return res.data.data;
+}
+
+/**
+ * Fetch the most recent public alerts (last 24 h, no auth required).
+ */
+export async function getRecentAlerts(): Promise<ApiAlert[]> {
+    const res = await api.get<ApiResponse<ApiAlert[]>>('alerts/recent');
+    return res.data.data;
+}
+
+/**
+ * Get the unread alert count (authenticated).
+ */
+export async function getAlertCount(): Promise<number> {
+    const res = await api.get<ApiResponse<{ count: number }>>('alerts/count');
+    return res.data.data.count;
+}
+
 export default api;
