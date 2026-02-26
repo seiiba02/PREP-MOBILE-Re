@@ -88,8 +88,19 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 : await getRecentAlerts();
 
             const currentReadIds = await loadReadIds();
-            setReadIds(currentReadIds);
-            setAlerts(apiAlerts.map(a => mapAlert(a, currentReadIds)));
+
+            // Prune stale read IDs that no longer match any fetched alert
+            // (prevents old mock IDs from hiding indicators on real alerts)
+            const freshAlertIds = new Set(apiAlerts.map(a => String(a.id)));
+            const prunedReadIds = new Set<string>(
+                [...currentReadIds].filter(id => freshAlertIds.has(id)),
+            );
+            if (prunedReadIds.size !== currentReadIds.size) {
+                saveReadIds(prunedReadIds);
+            }
+
+            setReadIds(prunedReadIds);
+            setAlerts(apiAlerts.map(a => mapAlert(a, prunedReadIds)));
         } catch (error) {
             console.error('Failed to fetch alerts:', error);
             // Keep existing alerts on failure so the UI isn't wiped
