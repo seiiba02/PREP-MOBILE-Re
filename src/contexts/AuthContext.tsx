@@ -7,8 +7,10 @@ import {
     registerResident,
     getResidentProfile,
     updateResidentProfile,
+    registerDeviceToken,
     ApiResident,
 } from '../services/api';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
 
 interface AuthContextType extends AuthState {
     login: (contactNumber: string, password: string) => Promise<void>;
@@ -40,6 +42,16 @@ function mapApiResident(r: ApiResident, token: string): { user: User; token: str
 const DEVICE_NAME =
     Platform.OS === 'android' ? 'PREP Android App' : 'PREP iOS App';
 
+/** Fire-and-forget: register the Expo push token with the backend. */
+async function syncPushToken() {
+    try {
+        const token = await registerForPushNotificationsAsync();
+        if (token) await registerDeviceToken(token);
+    } catch (e) {
+        console.warn('Push token registration failed (non-blocking):', e);
+    }
+}
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [state, setState] = useState<AuthState>({
         user: null,
@@ -56,6 +68,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (storedData) {
                     const { user, token } = JSON.parse(storedData);
                     setState({ user, token, isLoading: false, isAuthenticated: true });
+                    // Refresh push token on session restore
+                    syncPushToken();
                 } else {
                     setState(prev => ({ ...prev, isLoading: false }));
                 }
@@ -78,6 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const { user, token } = mapApiResident(payload.resident, payload.token);
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }));
             setState({ user, token, isLoading: false, isAuthenticated: true });
+            syncPushToken();
         } catch (error) {
             setState(prev => ({ ...prev, isLoading: false }));
             throw error;
@@ -94,13 +109,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 contact_number: contactNumber,
                 password: userData.password,
                 password_confirmation: userData.password,
-                // Backend resolves by name when barangay_id is omitted
                 barangay_name: userData.barangay ?? '',
                 device_name: DEVICE_NAME,
             });
             const { user, token } = mapApiResident(payload.resident, payload.token);
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }));
             setState({ user, token, isLoading: false, isAuthenticated: true });
+            syncPushToken();
         } catch (error) {
             setState(prev => ({ ...prev, isLoading: false }));
             throw error;
