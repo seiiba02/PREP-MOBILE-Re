@@ -21,7 +21,7 @@ export default function District1Screen() {
             >
                 <SharedHeader />
                 <View style={sharedStyles.whiteContainer}>
-                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}!</Text>
                     <View style={sharedStyles.separator} />
                     <View style={styles.titleContainer}>
                         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
