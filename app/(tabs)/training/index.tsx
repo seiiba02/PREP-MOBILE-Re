@@ -79,7 +79,7 @@ export default function TrainingScreen() {
             >
                 <SharedHeader />
                 <View style={[sharedStyles.whiteContainer]}>
-                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}!</Text>
                     <View style={sharedStyles.separator} />
 
                     <Text style={sharedStyles.sectionTitle}>Training Resources</Text>
