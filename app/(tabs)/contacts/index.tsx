@@ -46,7 +46,7 @@ export default function ContactDirectoryScreen() {
 
                 <View style={sharedStyles.whiteContainer} pointerEvents='box-none'>
 
-                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}!</Text>
                     <View style={sharedStyles.separator} />
 
                     <Text style={sharedStyles.sectionTitle}>Contact Directory</Text>
