@@ -137,7 +137,7 @@ export default function IncidentScreen() {
             >
                 <SharedHeader />
                 <View style={[sharedStyles.whiteContainer]}>
-                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}</Text>
+                    <Text style={sharedStyles.greeting}>Hello, {user?.fullName ?? 'User'}!</Text>
                     <View style={sharedStyles.separator} />
 
                     <Text style={sharedStyles.sectionTitle}>Incident Report</Text>
