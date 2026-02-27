@@ -8,7 +8,7 @@ import { useAlerts } from '../src/contexts/AlertContext';
 import { EmergencyAlert } from '../src/types';
 
 export default function AlertsScreen() {
-    const { alerts, isLoading, refreshAlerts, markAsRead, markAllAsRead } = useAlerts();
+    const { alerts, isLoading, refreshAlerts, markAsRead, markAllAsRead, clearRead } = useAlerts();
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
 
@@ -95,9 +95,16 @@ export default function AlertsScreen() {
                     <MaterialCommunityIcons name="arrow-left" size={24} color={colors.secondary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Emergency Alerts</Text>
-                <TouchableOpacity onPress={markAllAsRead}>
-                    <Text style={styles.markAll}>Mark all as read</Text>
-                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity onPress={markAllAsRead}>
+                        <Text style={styles.markAll}>Read all</Text>
+                    </TouchableOpacity>
+                    {alerts.some(a => a.isRead) && (
+                        <TouchableOpacity onPress={clearRead}>
+                            <Text style={styles.clearRead}>Clear read</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             <FlatList
@@ -140,9 +147,19 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
     },
     markAll: {
-        fontSize: 14,
+        fontSize: 13,
         color: colors.primary,
         fontWeight: '600',
+    },
+    clearRead: {
+        fontSize: 13,
+        color: colors.critical,
+        fontWeight: '600',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
     },
     listContent: {
         padding: spacing.md,
