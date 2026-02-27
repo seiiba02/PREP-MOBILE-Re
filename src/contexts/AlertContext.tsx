@@ -1,10 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { EmergencyAlert, AlertSeverity } from '../types';
 import { getAlerts, getRecentAlerts, ApiAlert } from '../services/api';
 import { useAuth } from './AuthContext';
 
-const READ_IDS_KEY = '@PREP_READ_ALERTS';
+// Storage keys are per-user; guest uses a fixed suffix.
+function readKey(userId: string | undefined) {
+    return `@PREP_READ_ALERTS_${userId ?? 'guest'}`;
+}
+function clearedKey(userId: string | undefined) {
+    return `@PREP_CLEARED_ALERTS_${userId ?? 'guest'}`;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -36,20 +42,20 @@ function mapAlert(a: ApiAlert, readIds: Set<string>): EmergencyAlert {
     };
 }
 
-async function loadReadIds(): Promise<Set<string>> {
+async function loadIdSet(key: string): Promise<Set<string>> {
     try {
-        const raw = await AsyncStorage.getItem(READ_IDS_KEY);
+        const raw = await AsyncStorage.getItem(key);
         return raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
     } catch {
         return new Set<string>();
     }
 }
 
-async function saveReadIds(ids: Set<string>): Promise<void> {
+async function saveIdSet(key: string, ids: Set<string>): Promise<void> {
     try {
-        await AsyncStorage.setItem(READ_IDS_KEY, JSON.stringify([...ids]));
+        await AsyncStorage.setItem(key, JSON.stringify([...ids]));
     } catch (e) {
-        console.warn('Failed to persist read alert IDs', e);
+        console.warn(`Failed to persist ${key}`, e);
     }
 }
 
@@ -62,23 +68,36 @@ interface AlertContextType {
     addAlert: (alert: Omit<EmergencyAlert, 'id' | 'timestamp' | 'isRead'>) => void;
     markAsRead: (alertId: string) => void;
     markAllAsRead: () => void;
+    clearRead: () => void;
     refreshAlerts: () => Promise<void>;
 }
 
 const AlertContext = createContext<AlertContextType | undefined>(undefined);
 
 export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
+    const userId = user?.id;
     const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
     const [readIds, setReadIds] = useState<Set<string>>(new Set());
+    const [clearedIds, setClearedIds] = useState<Set<string>>(new Set());
     const [isLoading, setIsLoading] = useState(false);
+
+    // Keep a ref so callbacks always see the latest userId without re-creating
+    const userIdRef = useRef(userId);
+    useEffect(() => { userIdRef.current = userId; }, [userId]);
 
     const unreadCount = alerts.filter(a => !a.isRead).length;
 
-    // Load persisted read IDs once on mount
+    // Load persisted read & cleared IDs when user changes
     useEffect(() => {
-        loadReadIds().then(setReadIds);
-    }, []);
+        Promise.all([
+            loadIdSet(readKey(userId)),
+            loadIdSet(clearedKey(userId)),
+        ]).then(([r, c]) => {
+            setReadIds(r);
+            setClearedIds(c);
+        });
+    }, [userId]);
 
     const refreshAlerts = useCallback(async () => {
         setIsLoading(true);
@@ -87,23 +106,27 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 ? await getAlerts()
                 : await getRecentAlerts();
 
-            const currentReadIds = await loadReadIds();
+            const uid = userIdRef.current;
+            const currentReadIds = await loadIdSet(readKey(uid));
+            const currentClearedIds = await loadIdSet(clearedKey(uid));
 
             // Prune stale read IDs that no longer match any fetched alert
-            // (prevents old mock IDs from hiding indicators on real alerts)
             const freshAlertIds = new Set(apiAlerts.map(a => String(a.id)));
             const prunedReadIds = new Set<string>(
                 [...currentReadIds].filter(id => freshAlertIds.has(id)),
             );
             if (prunedReadIds.size !== currentReadIds.size) {
-                saveReadIds(prunedReadIds);
+                saveIdSet(readKey(uid), prunedReadIds);
             }
 
             setReadIds(prunedReadIds);
-            setAlerts(apiAlerts.map(a => mapAlert(a, prunedReadIds)));
+            setClearedIds(currentClearedIds);
+
+            // Filter out cleared alerts, then map
+            const visible = apiAlerts.filter(a => !currentClearedIds.has(String(a.id)));
+            setAlerts(visible.map(a => mapAlert(a, prunedReadIds)));
         } catch (error) {
             console.error('Failed to fetch alerts:', error);
-            // Keep existing alerts on failure so the UI isn't wiped
         } finally {
             setIsLoading(false);
         }
@@ -130,7 +153,7 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         ));
         setReadIds(prev => {
             const next = new Set(prev).add(alertId);
-            saveReadIds(next);
+            saveIdSet(readKey(userIdRef.current), next);
             return next;
         });
     };
@@ -140,7 +163,23 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setReadIds(prev => {
             const next = new Set(prev);
             alerts.forEach(a => next.add(a.id));
-            saveReadIds(next);
+            saveIdSet(readKey(userIdRef.current), next);
+            return next;
+        });
+    };
+
+    const clearRead = () => {
+        const readAlertIds = alerts.filter(a => a.isRead).map(a => a.id);
+        if (readAlertIds.length === 0) return;
+
+        // Remove from visible list
+        setAlerts(prev => prev.filter(a => !a.isRead));
+
+        // Persist cleared IDs so they stay hidden across refreshes / app restarts
+        setClearedIds(prev => {
+            const next = new Set(prev);
+            readAlertIds.forEach(id => next.add(id));
+            saveIdSet(clearedKey(userIdRef.current), next);
             return next;
         });
     };
@@ -154,6 +193,7 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 addAlert,
                 markAsRead,
                 markAllAsRead,
+                clearRead,
                 refreshAlerts
             }}
         >
