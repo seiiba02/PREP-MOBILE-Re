@@ -15,6 +15,8 @@ export function setupNotificationHandler(): void {
             shouldShowAlert: true,   // show banner even when app is open
             shouldPlaySound: true,
             shouldSetBadge: true,
+            shouldShowBanner: true,   // ← new required field (heads-up banner)
+            shouldShowList: true,     // ← new required field (notification drawer)
         }),
     });
 }
