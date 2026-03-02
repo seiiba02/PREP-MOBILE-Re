@@ -41,3 +41,5 @@ yarn-error.*
 
 # personal/certificates
 *.pdf
+
+google-services.json
