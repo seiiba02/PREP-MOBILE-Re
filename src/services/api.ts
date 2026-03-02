@@ -284,6 +284,14 @@ export async function registerDeviceToken(token: string): Promise<void> {
     });
 }
 
+/**
+ * Notify the backend of logout: clears the device push token on the
+ * resident record and revokes the current Sanctum bearer token.
+ */
+export async function logoutResident(): Promise<void> {
+    await api.post<ApiResponse<null>>('residents/logout');
+}
+
 // ── Alerts ────────────────────────────────────────────────────────────────────
 
 export interface ApiAlert {
