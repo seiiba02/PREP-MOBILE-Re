@@ -8,6 +8,7 @@ import {
     getResidentProfile,
     updateResidentProfile,
     registerDeviceToken,
+    logoutResident,
     ApiResident,
 } from '../services/api';
 import { registerForPushNotificationsAsync } from '../utils/notifications';
@@ -123,6 +124,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const logout = async () => {
+        // Best-effort: tell the backend to clear the device token and revoke
+        // the Sanctum token. Wrapped in try/catch so offline logout still works.
+        try {
+            await logoutResident();
+        } catch (error) {
+            console.warn('Backend logout failed (non-blocking):', error);
+        }
+
         try {
             await AsyncStorage.removeItem(STORAGE_KEY);
         } catch (error) {
