@@ -1,6 +1,24 @@
 import { Platform } from 'react-native';
 
 // Safe lazy accessors — these modules crash in Expo Go
+/**
+ * Call once at app startup (e.g. root _layout.tsx).
+ * Without this, push notifications are silently dropped when the app is
+ * in the foreground on all platforms.
+ */
+export function setupNotificationHandler(): void {
+    const Notifications = getNotifications();
+    if (!Notifications) return;
+
+    Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+            shouldShowAlert: true,   // show banner even when app is open
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+        }),
+    });
+}
+
 function getNotifications() {
     try {
         return require('expo-notifications') as typeof import('expo-notifications');
