@@ -9,6 +9,7 @@ import { getCityOutlineGeoJSON, getWaterwaysGeoJSON, getBarangayGeoJSON, getBara
 import { useAuth } from '../../contexts/AuthContext';
 import { getEvacuationCenters, ApiEvacuationCenter } from '../../services/api';
 import { useRouting } from '../../hooks/useRouting';
+import { useUserLocation } from '../../contexts/LocationContext';
 import { RoutingLayer } from './RoutingLayer';
 import { RoutingInfoCard } from './RoutingInfoCard';
 
@@ -46,12 +47,15 @@ export function FullMapView() {
 
     // ── GPS coordinates from MapLibre’s own UserLocation session ──────────────
     const userCoordsRef = useRef<[number, number] | null>(null);
-    const [userCoords, setUserCoords] = useState<[number, number] | null>(null);    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const { updateCoords } = useUserLocation();
     const handleLocationUpdate = useCallback((loc: MapLibreGL.Location) => {
         const coords: [number, number] = [loc.coords.longitude, loc.coords.latitude];
         userCoordsRef.current = coords;
         setUserCoords(coords);
-    }, []);
+        updateCoords(coords);
+    }, [updateCoords]);
 
     // ── Routing ───────────────────────────────────────────────────────────────
     const {
