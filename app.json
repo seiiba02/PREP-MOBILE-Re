@@ -44,7 +44,14 @@
       "expo-font",
       "@maplibre/maplibre-react-native",
       "expo-notifications",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "PREP needs your location to route you to the nearest evacuation center.",
+          "locationWhenInUsePermission": "PREP needs your location to show nearby evacuation centers."
+        }
+      ]
     ],
     "scheme": "prep-mobile",
     "extra": {
