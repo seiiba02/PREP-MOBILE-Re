@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { AlertProvider } from '../src/contexts/AlertContext';
+import { LocationProvider } from '../src/contexts/LocationContext';
 import { Platform } from 'react-native';
 
 export default function RootLayout() {
@@ -38,6 +39,7 @@ export default function RootLayout() {
 
     return (
         <AuthProvider>
+            <LocationProvider>
             <AlertProvider>
                 <StatusBar style="auto" />
                 <Stack screenOptions={{ headerShown: false }}>
@@ -45,6 +47,7 @@ export default function RootLayout() {
                     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 </Stack>
             </AlertProvider>
+            </LocationProvider>
         </AuthProvider>
     );
 }
