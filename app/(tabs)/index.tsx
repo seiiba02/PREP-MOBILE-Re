@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ImageBackground, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ImageBackground, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { sharedStyles } from './_layout';
@@ -7,6 +7,7 @@ import { SharedHeader } from '../../src/components/SharedHeader';
 import { router } from 'expo-router';
 import { colors } from '../../src/constants/colors';
 import { MapWrapper, isDevBuild } from '../../src/components/map/MapWrapper';
+import { useNearestEvacuationCenter } from '../../src/hooks/useNearestEvacuationCenter';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { getBarangayImage } from '../../src/constants/barangayImages';
 
@@ -16,6 +17,7 @@ const MapPreviewCard = isDevBuild
 
 export default function HomeScreen() {
     const { user } = useAuth();
+    const nearest = useNearestEvacuationCenter();
 
     return (
 
@@ -38,16 +40,33 @@ export default function HomeScreen() {
                             <MaterialCommunityIcons name="map-marker" size={20} color="#818CF8" />
                         </View>
                         <View style={styles.evacInfo}>
-                            <View>
-                                <Text style={styles.evacLabel}>Nearest</Text>
-                                <Text style={styles.evacTitle}>Evacuation Area</Text>
+                            <View style={styles.evacNameCol}>
+                                <Text style={styles.evacLabel}>Nearest Evacuation Area</Text>
+                                {nearest.isLoading ? (
+                                    <ActivityIndicator size="small" color="#818CF8" style={{ marginTop: 2 }} />
+                                ) : nearest.error === 'location' ? (
+                                    <Text style={styles.evacTitle} numberOfLines={2}>Open map to locate</Text>
+                                ) : nearest.error === 'fetch' ? (
+                                    <Text style={styles.evacTitle} numberOfLines={2}>Unavailable</Text>
+                                ) : (
+                                    <Text style={styles.evacTitle} numberOfLines={2}>{nearest.center?.facility ?? '—'}</Text>
+                                )}
                             </View>
                             <View style={styles.evacDetails}>
                                 <Text style={styles.evacLabel}>Distance</Text>
-                                <Text style={styles.evacAddress}>Address Name</Text>
+                                {nearest.isLoading ? (
+                                    <Text style={styles.evacAddress}>—</Text>
+                                ) : (
+                                    <Text style={styles.evacAddress}>
+                                        {nearest.distanceLabel ?? '—'}
+                                    </Text>
+                                )}
                             </View>
                         </View>
-                        <TouchableOpacity style={styles.navigationBtn}>
+                        <TouchableOpacity
+                            style={styles.navigationBtn}
+                            onPress={() => router.push('/map' as any)}
+                        >
                             <Ionicons name="send" size={20} color="#FF4D4D" />
                         </TouchableOpacity>
                     </View>
@@ -133,7 +152,12 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
         paddingRight: 15,
+    },
+    evacNameCol: {
+        flex: 1,
+        marginRight: 8,
     },
     evacLabel: {
         fontSize: 10,
