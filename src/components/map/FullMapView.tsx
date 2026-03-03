@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,6 +8,9 @@ import { config } from '../../constants/config';
 import { getCityOutlineGeoJSON, getWaterwaysGeoJSON, getBarangayGeoJSON, getBarangayBoundsArray } from '../../utils/mapUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { getEvacuationCenters, ApiEvacuationCenter } from '../../services/api';
+import { useRouting } from '../../hooks/useRouting';
+import { RoutingLayer } from './RoutingLayer';
+import { RoutingInfoCard } from './RoutingInfoCard';
 
 
 const markerIcon = (type: string) => {
@@ -34,11 +37,117 @@ const markerColor = (type: string) => {
 
 export function FullMapView() {
     const mapRef = useRef<MapLibreGL.MapViewRef>(null);
+    const cameraRef = useRef<MapLibreGL.CameraRef>(null);
     const [mapStyle, setMapStyle] = useState<'liberty' | 'positron'>('liberty');
     const [isSingleBarangayView, setIsSingleBarangayView] = useState(false);
     const [showEvacuationCenters, setShowEvacuationCenters] = useState(false);
     const [evacuationCenters, setEvacuationCenters] = useState<ApiEvacuationCenter[]>([]);
     const { user } = useAuth();
+
+    // ── GPS coordinates from MapLibre’s own UserLocation session ──────────────
+    const userCoordsRef = useRef<[number, number] | null>(null);
+    const [userCoords, setUserCoords] = useState<[number, number] | null>(null);    const [isRefreshing, setIsRefreshing] = useState(false);
+    const handleLocationUpdate = useCallback((loc: MapLibreGL.Location) => {
+        const coords: [number, number] = [loc.coords.longitude, loc.coords.latitude];
+        userCoordsRef.current = coords;
+        setUserCoords(coords);
+    }, []);
+
+    // ── Routing ───────────────────────────────────────────────────────────────
+    const {
+        routeGeoJSON,
+        destination: routeDestination,
+        distance: routeDistance,
+        duration: routeDuration,
+        isLoading: routeLoading,
+        error: routeError,
+        routeTo,
+        routeToNearest,
+        clearRoute,
+    } = useRouting();
+
+    const handleMarkerPress = useCallback(
+        (center: ApiEvacuationCenter) => {
+            const coords = userCoordsRef.current;
+            if (!coords) {
+                Alert.alert(
+                    'Location Unavailable',
+                    'Your position has not been determined yet. Make sure GPS is enabled and wait a moment.',
+                );
+                return;
+            }
+            routeTo(
+                coords,
+                [center.location_longitude, center.location_latitude],
+                center.facility,
+            );
+        },
+        [routeTo],
+    );
+
+    /** “Route to Nearest” button handler */
+    const handleRouteToNearest = useCallback(() => {
+        const coords = userCoordsRef.current;
+        if (!coords) {
+            Alert.alert(
+                'Location Unavailable',
+                'Your position has not been determined yet. Make sure GPS is enabled and wait a moment.',
+            );
+            return;
+        }
+        if (evacuationCenters.length === 0) {
+            Alert.alert('No Data', 'Evacuation centers have not loaded yet.');
+            return;
+        }
+        routeToNearest(coords, evacuationCenters);
+    }, [routeToNearest, evacuationCenters]);
+
+    /**
+     * Refreshes the routing origin using the most recent GPS fix already
+     * provided by MapLibre's UserLocation stream — no extra native module needed.
+     * If a route is active, re-routes from the fresh position.
+     * Also flies the camera to the user's current location.
+     */
+    const handleRefreshLocation = useCallback(async () => {
+        const coords = userCoordsRef.current;
+        if (!coords) {
+            Alert.alert(
+                'Location Unavailable',
+                'Your position has not been determined yet. Make sure GPS is enabled and wait a moment.',
+            );
+            return;
+        }
+        setIsRefreshing(true);
+        try {
+            // Fly camera to current position with a close zoom level
+            cameraRef.current?.setCamera({
+                centerCoordinate: coords,
+                zoomLevel: 16,
+                animationDuration: 600,
+                animationMode: 'flyTo',
+            });
+            // Re-route from the fresh position if a route is already active
+            if (routeDestination) {
+                await routeTo(coords, routeDestination.coordinate, routeDestination.name);
+            }
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [routeDestination, routeTo]);
+
+    /** Camera bounds that fit the user + destination when a route is active */
+
+    const routeBounds = useMemo(() => {
+        if (!routeGeoJSON || !userCoords || !routeDestination) {
+            return null;
+        }
+        const [uLng, uLat] = userCoords;
+        const [dLng, dLat] = routeDestination.coordinate;
+        return {
+            sw: [Math.min(uLng, dLng), Math.min(uLat, dLat)] as [number, number],
+            ne: [Math.max(uLng, dLng), Math.max(uLat, dLat)] as [number, number],
+        };
+    }, [routeGeoJSON, userCoords, routeDestination]);
 
     useEffect(() => {
         if (showEvacuationCenters && evacuationCenters.length === 0) {
@@ -85,20 +194,30 @@ export function FullMapView() {
                 attributionEnabled={false}
             >
                 <MapLibreGL.Camera
+                    ref={cameraRef}
                     bounds={
-                        currentBounds
+                        routeBounds
                             ? {
-                                sw: currentBounds[0],
-                                ne: currentBounds[1],
-                                paddingTop: 50,
-                                paddingBottom: 50,
-                                paddingLeft: 50,
-                                paddingRight: 50,
+                                sw: routeBounds.sw,
+                                ne: routeBounds.ne,
+                                paddingTop: 120,
+                                paddingBottom: 200,
+                                paddingLeft: 60,
+                                paddingRight: 60,
                             }
-                            : undefined
+                            : currentBounds
+                                ? {
+                                    sw: currentBounds[0],
+                                    ne: currentBounds[1],
+                                    paddingTop: 50,
+                                    paddingBottom: 50,
+                                    paddingLeft: 50,
+                                    paddingRight: 50,
+                                }
+                                : undefined
                     }
-                    centerCoordinate={!currentBounds ? config.maplibre.center : undefined}
-                    zoomLevel={!currentBounds ? config.maplibre.zoom : undefined}
+                    centerCoordinate={!routeBounds && !currentBounds ? config.maplibre.center : undefined}
+                    zoomLevel={!routeBounds && !currentBounds ? config.maplibre.zoom : undefined}
                     animationDuration={800}
                 />
 
@@ -141,14 +260,23 @@ export function FullMapView() {
                     />
                 </MapLibreGL.ShapeSource>
 
-                <MapLibreGL.UserLocation visible={true} />
+                <MapLibreGL.UserLocation
+                    visible={true}
+                    onUpdate={handleLocationUpdate}
+                />
 
-                {/* Evacuation Centers Markers */}
+                {/* Route line (rendered above base layers, below markers) */}
+                {routeGeoJSON && (
+                    <RoutingLayer routeGeoJSON={routeGeoJSON} />
+                )}
+
+                {/* Evacuation Centers Markers — tappable for routing */}
                 {showEvacuationCenters && evacuationCenters.map((center) => (
                     <MapLibreGL.PointAnnotation
                         key={center.id}
                         id={`evac-${center.id}`}
                         coordinate={[center.location_longitude, center.location_latitude]}
+                        onSelected={() => handleMarkerPress(center)}
                     >
                         <View style={[styles.markerContainer, { backgroundColor: markerColor('evacuation') }]}>
                             <MaterialCommunityIcons name={markerIcon('evacuation') as any} size={16} color="white" />
@@ -181,7 +309,12 @@ export function FullMapView() {
                             { marginTop: 10 },
                             showEvacuationCenters && { backgroundColor: colors.success }
                         ]}
-                        onPress={() => setShowEvacuationCenters(!showEvacuationCenters)}
+                        onPress={() => {
+                            if (showEvacuationCenters) {
+                                clearRoute();
+                            }
+                            setShowEvacuationCenters(!showEvacuationCenters);
+                        }}
                     >
                         <MaterialCommunityIcons
                             name={showEvacuationCenters ? 'home-alert' : 'home-alert-outline'}
@@ -203,61 +336,112 @@ export function FullMapView() {
                             color={colors.secondary}
                         />
                     </TouchableOpacity>
+
+                    {/* Refresh current GPS position */}
+                    <TouchableOpacity
+                        style={[
+                            styles.controlButton,
+                            { marginTop: 10 },
+                            isRefreshing && { opacity: 0.6 },
+                        ]}
+                        onPress={handleRefreshLocation}
+                        disabled={isRefreshing}
+                    >
+                        {isRefreshing ? (
+                            <ActivityIndicator size="small" color={colors.secondary} />
+                        ) : (
+                            <MaterialCommunityIcons
+                                name="crosshairs-gps"
+                                size={24}
+                                color={colors.secondary}
+                            />
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Route to nearest evacuation center */}
+                    {showEvacuationCenters && (
+                        <TouchableOpacity
+                            style={[
+                                styles.controlButton,
+                                { marginTop: 10 },
+                                routeGeoJSON && { backgroundColor: colors.info },
+                            ]}
+                            onPress={routeGeoJSON ? clearRoute : handleRouteToNearest}
+                        >
+                            <MaterialCommunityIcons
+                                name={routeGeoJSON ? 'close' : 'navigation-variant'}
+                                size={24}
+                                color={routeGeoJSON ? 'white' : colors.secondary}
+                            />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
-                <View style={styles.bottomControls}>
-                    <View style={styles.legend}>
-                        <Text style={styles.legendTitle}>
-                            Nearest Responders
-                        </Text>
-                        <View style={styles.legendItems}>
-                            <View style={styles.legendItem}>
-                                <View
-                                    style={[
-                                        styles.dot,
-                                        { backgroundColor: colors.success },
-                                    ]}
-                                />
-                                <Text style={styles.legendText}>
-                                    Evacuation
-                                </Text>
-                            </View>
-                            <View style={styles.legendItem}>
-                                <View
-                                    style={[
-                                        styles.dot,
-                                        { backgroundColor: colors.info },
-                                    ]}
-                                />
-                                <Text style={styles.legendText}>
-                                    Hospitals
-                                </Text>
-                            </View>
-                            <View style={styles.legendItem}>
-                                <View
-                                    style={[
-                                        styles.dot,
-                                        { backgroundColor: colors.critical },
-                                    ]}
-                                />
-                                <Text style={styles.legendText}>
-                                    Fire/Police
-                                </Text>
-                            </View>
-                            <View style={styles.legendItem}>
-                                <View
-                                    style={[
-                                        styles.dot,
-                                        { backgroundColor: '#0EA5E9' },
-                                    ]}
-                                />
-                                <Text style={styles.legendText}>
-                                    Waterways
-                                </Text>
+                {/* Route info card replaces the legend when a route is active */}
+                {(routeGeoJSON || routeLoading || routeError) ? (
+                    <RoutingInfoCard
+                        destinationName={routeDestination?.name ?? ''}
+                        distance={routeDistance ?? 0}
+                        duration={routeDuration ?? 0}
+                        isLoading={routeLoading}
+                        error={routeError}
+                        onCancel={clearRoute}
+                    />
+                ) : (
+                    <View style={styles.bottomControls}>
+                        <View style={styles.legend}>
+                            <Text style={styles.legendTitle}>
+                                Nearest Responders
+                            </Text>
+                            <View style={styles.legendItems}>
+                                <View style={styles.legendItem}>
+                                    <View
+                                        style={[
+                                            styles.dot,
+                                            { backgroundColor: colors.success },
+                                        ]}
+                                    />
+                                    <Text style={styles.legendText}>
+                                        Evacuation
+                                    </Text>
+                                </View>
+                                <View style={styles.legendItem}>
+                                    <View
+                                        style={[
+                                            styles.dot,
+                                            { backgroundColor: colors.info },
+                                        ]}
+                                    />
+                                    <Text style={styles.legendText}>
+                                        Hospitals
+                                    </Text>
+                                </View>
+                                <View style={styles.legendItem}>
+                                    <View
+                                        style={[
+                                            styles.dot,
+                                            { backgroundColor: colors.critical },
+                                        ]}
+                                    />
+                                    <Text style={styles.legendText}>
+                                        Fire/Police
+                                    </Text>
+                                </View>
+                                <View style={styles.legendItem}>
+                                    <View
+                                        style={[
+                                            styles.dot,
+                                            { backgroundColor: '#0EA5E9' },
+                                        ]}
+                                    />
+                                    <Text style={styles.legendText}>
+                                        Waterways
+                                    </Text>
+                                </View>
                             </View>
                         </View>
                     </View>
-                </View>
+                )}
             </SafeAreaView>
         </>
     );
