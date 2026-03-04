@@ -109,5 +109,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 Developed for **San Juan City Emergency Preparedness**.
-
-# PREP-MOBILE-Re
