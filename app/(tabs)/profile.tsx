@@ -53,6 +53,7 @@ export default function ProfileScreen() {
                         <ProfileItem icon="phone" title="Contact Number" value={user?.contactNumber} />
                         <ProfileItem icon="map-marker" title="Home Barangay" value={user?.barangay} />
                         <ProfileItem icon="calendar" title="Member Since" value={new Date(user?.createdAt || Date.now()).toLocaleDateString()} />
+                        <ProfileItem icon="lock" title="Password" value="********" onPress={() => { }} />
                     </View>
                 </View>
 
