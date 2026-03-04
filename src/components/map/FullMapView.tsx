@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, ActivityIndicator, Modal, Linking, Platform } from 'react-native';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -43,6 +43,7 @@ export function FullMapView() {
     const [isSingleBarangayView, setIsSingleBarangayView] = useState(false);
     const [showEvacuationCenters, setShowEvacuationCenters] = useState(false);
     const [evacuationCenters, setEvacuationCenters] = useState<ApiEvacuationCenter[]>([]);
+    const [selectedCenter, setSelectedCenter] = useState<ApiEvacuationCenter | null>(null);
     const { user } = useAuth();
 
     // ── GPS coordinates from MapLibre’s own UserLocation session ──────────────
@@ -72,21 +73,9 @@ export function FullMapView() {
 
     const handleMarkerPress = useCallback(
         (center: ApiEvacuationCenter) => {
-            const coords = userCoordsRef.current;
-            if (!coords) {
-                Alert.alert(
-                    'Location Unavailable',
-                    'Your position has not been determined yet. Make sure GPS is enabled and wait a moment.',
-                );
-                return;
-            }
-            routeTo(
-                coords,
-                [center.location_longitude, center.location_latitude],
-                center.facility,
-            );
+            setSelectedCenter(center);
         },
-        [routeTo],
+        [],
     );
 
     /** “Route to Nearest” button handler */
@@ -447,6 +436,110 @@ export function FullMapView() {
                     </View>
                 )}
             </SafeAreaView>
+
+            {/* Evacuation Center Details Modal */}
+            <Modal
+                visible={!!selectedCenter}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setSelectedCenter(null)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        {selectedCenter && (
+                            <>
+                                <View style={styles.modalHeader}>
+                                    <View style={{ flex: 1, paddingRight: 12 }}>
+                                        <Text style={styles.modalTitle}>{selectedCenter.facility}</Text>
+                                        {selectedCenter.address && (
+                                            <Text style={styles.modalSubtitle}>{selectedCenter.address}</Text>
+                                        )}
+                                    </View>
+                                    <TouchableOpacity onPress={() => setSelectedCenter(null)} style={styles.closeButton}>
+                                        <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.modalBody}>
+                                    <View style={styles.infoRow}>
+                                        <MaterialCommunityIcons name="office-building" size={20} color={colors.textSecondary} />
+                                        <Text style={styles.modalText}>
+                                            {selectedCenter.type_of_building || 'Evacuation Center'}
+                                        </Text>
+                                    </View>
+                                    {selectedCenter.capacity !== null && (
+                                        <View style={styles.infoRow}>
+                                            <MaterialCommunityIcons name="account-group" size={20} color={colors.textSecondary} />
+                                            <Text style={styles.modalText}>Capacity: {selectedCenter.capacity}</Text>
+                                        </View>
+                                    )}
+                                    <View style={styles.infoRow}>
+                                        <MaterialCommunityIcons name="information" size={20} color={colors.textSecondary} />
+                                        <Text style={styles.modalText}>
+                                            Status: <Text style={{ color: selectedCenter.status === 'Open' || selectedCenter.available ? colors.success : colors.warning, fontWeight: 'bold' }}>{selectedCenter.status}</Text>
+                                        </Text>
+                                    </View>
+                                    {selectedCenter.remarks && (
+                                        <View style={styles.infoRow}>
+                                            <MaterialCommunityIcons name="note-text" size={20} color={colors.textSecondary} />
+                                            <Text style={styles.modalText}>{selectedCenter.remarks}</Text>
+                                        </View>
+                                    )}
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.routeModalButton}
+                                    onPress={() => {
+                                        const coords = userCoordsRef.current;
+                                        if (!coords) {
+                                            Alert.alert(
+                                                'Location Unavailable',
+                                                'Your position has not been determined yet. Make sure GPS is enabled and wait a moment.',
+                                            );
+                                            return;
+                                        }
+                                        routeTo(
+                                            coords,
+                                            [selectedCenter.location_longitude, selectedCenter.location_latitude],
+                                            selectedCenter.facility,
+                                        );
+                                        setSelectedCenter(null);
+                                    }}
+                                >
+                                    <MaterialCommunityIcons name="directions" size={20} color="white" style={{ marginRight: 8 }} />
+                                    <Text style={styles.routeModalButtonText}>Route to Center</Text>
+                                </TouchableOpacity>
+
+                                {/* Optional External Map Routing Button */}
+                                <TouchableOpacity
+                                    style={[styles.routeModalButton, { marginTop: 8, backgroundColor: colors.secondary }]}
+                                    onPress={() => {
+                                        const lat = selectedCenter.location_latitude;
+                                        const lng = selectedCenter.location_longitude;
+                                        const label = selectedCenter.facility;
+
+                                        const scheme = Platform.select({ ios: 'maps://0,0?q=', android: 'geo:0,0?q=' });
+                                        const latLng = `${lat},${lng}`;
+                                        const url = Platform.select({
+                                            ios: `${scheme}${label}@${latLng}`,
+                                            android: `${scheme}${latLng}(${label})`
+                                        });
+
+                                        if (url) {
+                                            Linking.openURL(url).catch(() => {
+                                                Alert.alert('Error', 'Could not open routing application.');
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <MaterialCommunityIcons name="google-maps" size={20} color="white" style={{ marginRight: 8 }} />
+                                    <Text style={styles.routeModalButtonText}>Open in Maps App</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </>
     );
 }
@@ -531,5 +624,67 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 5,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: spacing.lg,
+        paddingBottom: spacing.xl,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: spacing.md,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: 4,
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: colors.textSecondary,
+    },
+    closeButton: {
+        padding: 4,
+    },
+    modalBody: {
+        marginBottom: spacing.lg,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    modalText: {
+        fontSize: 15,
+        color: colors.textPrimary,
+        marginLeft: 10,
+    },
+    routeModalButton: {
+        backgroundColor: colors.info,
+        flexDirection: 'row',
+        padding: spacing.md,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    routeModalButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
