@@ -75,7 +75,7 @@ interface AlertContextType {
 const AlertContext = createContext<AlertContextType | undefined>(undefined);
 
 export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, isLoading: authLoading } = useAuth();
     const userId = user?.id;
     const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
     const [readIds, setReadIds] = useState<Set<string>>(new Set());
@@ -100,6 +100,8 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, [userId]);
 
     const refreshAlerts = useCallback(async () => {
+        // Don't fetch while auth state is still being determined from storage
+        if (authLoading) return;
         setIsLoading(true);
         try {
             const apiAlerts: ApiAlert[] = isAuthenticated
@@ -130,9 +132,10 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, authLoading]);
 
-    // Fetch alerts on mount and whenever auth status changes
+    // Fetch alerts on mount and whenever auth status changes.
+    // The guard in refreshAlerts ensures we skip calls while auth is loading.
     useEffect(() => {
         refreshAlerts();
     }, [refreshAlerts]);
