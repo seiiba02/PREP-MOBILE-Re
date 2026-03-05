@@ -358,16 +358,24 @@ export interface ApiAlert {
  * Fetch alerts scoped to the authenticated resident's barangay (last 48 h).
  */
 export async function getAlerts(): Promise<ApiAlert[]> {
-    const res = await api.get<ApiResponse<ApiAlert[]>>('alerts');
-    return res.data.data;
+    const res = await api.get<ApiResponse<any>>('alerts');
+    const payload = res.data.data;
+    if (payload && Array.isArray(payload.data)) {
+        return payload.data;
+    }
+    return Array.isArray(payload) ? payload : [];
 }
 
 /**
  * Fetch the most recent public alerts (last 24 h, no auth required).
  */
 export async function getRecentAlerts(): Promise<ApiAlert[]> {
-    const res = await api.get<ApiResponse<ApiAlert[]>>('alerts/recent');
-    return res.data.data;
+    const res = await api.get<ApiResponse<any>>('alerts/recent');
+    const payload = res.data.data;
+    if (payload && Array.isArray(payload.data)) {
+        return payload.data;
+    }
+    return Array.isArray(payload) ? payload : [];
 }
 
 /**
