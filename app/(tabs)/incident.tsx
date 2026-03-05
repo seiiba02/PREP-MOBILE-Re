@@ -1,121 +1,154 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, RefreshControl } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing } from '../../src/constants/colors';
 import { sharedStyles } from './_layout';
 import { SharedHeader } from '../../src/components/SharedHeader';
-import {useAuth} from '../../src/contexts/AuthContext';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { getRecentIncidents, getTodayIncidentStats, ApiIncident, ApiIncidentStats } from '../../src/services/api';
 
 const { width } = Dimensions.get('window');
 
-
-// ─── Incident Type Config ───────────────────────────────────────────────
+// ─── Incident Type Config (Mirrored from Backend Hazard Classifications) ─
 const INCIDENT_TYPES: Record<string, { icon: string; color: string; label: string }> = {
-    medical: { icon: 'stethoscope', color: colors.info, label: 'Medical' },
-    trauma: { icon: 'pulse', color: '#8B5CF6', label: 'Trauma' },
-    vehicular: { icon: 'car', color: colors.warning, label: 'Vehicular' },
-    general: { icon: 'flash', color: colors.textSecondary, label: 'General' },
-    flood: { icon: 'waves', color: '#0EA5E9', label: 'Flood' },
-    earthquake: { icon: 'alert-circle-outline', color: '#EAB308', label: 'Earthquake' },
-    fire: { icon: 'fire', color: colors.critical, label: 'Fire' },
+    // Natural
+    'Flood': { icon: 'waves', color: '#3b82f6', label: 'Flood' },
+    'Earthquake': { icon: 'alert-circle', color: '#f59e0b', label: 'Earthquake' },
+    'Typhoon': { icon: 'weather-lightning', color: '#0ea5e9', label: 'Typhoon' },
+
+    // Man-Induced
+    'Vehicular_Accidents': { icon: 'car', color: '#ef4444', label: 'Vehicular' },
+    'General_Incidents': { icon: 'flash', color: '#64748b', label: 'General' },
+    'Fire': { icon: 'fire', color: '#dc2626', label: 'Fire' },
+    'Power_Outage': { icon: 'lightning-bolt', color: '#facc15', label: 'Power Outage' },
+    'System_Failure': { icon: 'cog', color: '#94a3b8', label: 'System Failure' },
+    'War': { icon: 'sword-cross', color: '#7f1d1d', label: 'War' },
+    'Rally': { icon: 'bullhorn', color: '#f97316', label: 'Rally' },
+
+    // Health
+    'Medical_Cases': { icon: 'stethoscope', color: '#10b981', label: 'Medical' },
+    'Trauma': { icon: 'pulse', color: '#8b5cf6', label: 'Trauma' },
+    'Chemical': { icon: 'flask', color: '#14b8a6', label: 'Chemical' },
+    'Biological': { icon: 'microscope', color: '#84cc16', label: 'Biological' },
+    'Radiological': { icon: 'radioactive', color: '#eab308', label: 'Radiological' },
+    'Nuclear': { icon: 'atom', color: '#f59e0b', label: 'Nuclear' },
+    'High_Yield_Explosives': { icon: 'bomb', color: '#b91c1c', label: 'Explosives' },
+    'Virus_Outbreak': { icon: 'bug', color: '#10b981', label: 'Virus Outbreak' },
 };
 
-// ─── Mock Incidents ─────────────────────────────────────────────────────
-const MOCK_INCIDENTS = [
-    {
-        id: '1',
-        title: 'Residential Fire Reported',
-        type: 'fire',
-        location: 'Brgy. Kabayanan, San Juan City',
-        timeAgo: '25 min ago',
-        status: 'active' as const,
-        severity: 'critical' as const,
-        isToday: true,
-    },
-    {
-        id: '2',
-        title: 'Street Flooding Map',
-        type: 'flood',
-        location: 'N. Domingo St., San Juan City',
-        timeAgo: '1 hour ago',
-        status: 'active' as const,
-        severity: 'warning' as const,
-        isToday: true,
-    },
-    {
-        id: '3',
-        title: 'Minor Vehicle Collision',
-        type: 'vehicular',
-        location: 'Pinaglabanan St., San Juan City',
-        timeAgo: '2 hours ago',
-        status: 'resolved' as const,
-        severity: 'advisory' as const,
-        isToday: true,
-    },
-    {
-        id: '4',
-        title: 'Medical Assistance Required',
-        type: 'medical',
-        location: 'Brgy. Maytunas, San Juan City',
-        timeAgo: '3 hours ago',
-        status: 'resolved' as const,
-        severity: 'warning' as const,
-        isToday: true,
-    },
-    {
-        id: '5',
-        title: 'Severe Earthquake Aftershock',
-        type: 'earthquake',
-        location: 'City Wide Impact',
-        timeAgo: 'Today, 8:00 AM',
-        status: 'resolved' as const,
-        severity: 'critical' as const,
-        isToday: true,
-    },
-    {
-        id: '6',
-        title: 'Reported Trauma Case',
-        type: 'trauma',
-        location: 'Brgy. St. Joseph, San Juan City',
-        timeAgo: 'Yesterday',
-        status: 'resolved' as const,
-        severity: 'advisory' as const,
-        isToday: false,
-    },
-    {
-        id: '7',
-        title: 'General Utility Fault',
-        type: 'general',
-        location: 'Brgy. Tibagan, San Juan City',
-        timeAgo: 'Yesterday',
-        status: 'resolved' as const,
-        severity: 'warning' as const,
-        isToday: false,
-    },
-];
+// Fallback config if category is unknown
+const DEFAULT_INCIDENT_CONFIG = { icon: 'alert', color: colors.info, label: 'Unknown' };
 
-// ─── Trend Summary Data ─────────────────────────────────────────────────
-const TODAY_INCIDENTS = MOCK_INCIDENTS.filter(i => i.isToday);
-const TODAY_STATS = {
-    total: TODAY_INCIDENTS.length,
-    active: TODAY_INCIDENTS.filter(i => i.status === 'active').length,
-    resolved: TODAY_INCIDENTS.filter(i => i.status === 'resolved').length,
-};
+// ─── Format Helpers ─────────────────────────────────────────────────────
 
-// ─── Incident Type Counts ───────────────────────────────────────────────
-const TYPE_COUNTS = Object.entries(
-    MOCK_INCIDENTS.reduce((acc, inc) => {
-        acc[inc.type] = (acc[inc.type] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>)
-).sort((a, b) => b[1] - a[1]);
+function formatTimeAgo(dateStr: string, timeStr: string): string {
+    if (!dateStr || !timeStr) return 'Unknown time';
 
-const MAX_TYPE_COUNT = Math.max(...TYPE_COUNTS.map(([, count]) => count));
+    // Parse the dateStr to handle UTC to Local conversion. 
+    // Backend serializes "midnight local date" as e.g. "2026-03-04T16:00:00.000000Z".
+    const parsedDate = new Date(dateStr);
+
+    if (isNaN(parsedDate.getTime())) {
+        return 'Unknown time';
+    }
+
+    // Extract the corrected local date segments
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(parsedDate.getDate()).padStart(2, '0');
+    const localDateString = `${year}-${month}-${day}`;
+
+    // Ensure the time string has a consistent format (HH:mm:ss)
+    const cleanTime = timeStr.trim();
+
+    // Create final local Date object
+    const incidentDateTime = new Date(`${localDateString}T${cleanTime}`);
+
+    if (isNaN(incidentDateTime.getTime())) {
+        return 'Unknown time';
+    }
+
+    const now = new Date();
+
+    // Compare dates based on local calendar days to determine "Today" vs "Yesterday"
+    const isToday = now.toDateString() === incidentDateTime.toDateString();
+
+    const yesterdayDate = new Date(now);
+    yesterdayDate.setDate(now.getDate() - 1);
+    const isYesterday = yesterdayDate.toDateString() === incidentDateTime.toDateString();
+
+    const diffMs = now.getTime() - incidentDateTime.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (isToday) {
+        if (diffMin < 1) return 'Just now';
+        if (diffMin < 60) return `${diffMin} min ago`;
+        return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+    }
+
+    if (isYesterday) {
+        return 'Yesterday';
+    }
+
+    if (diffDay < 7) {
+        return `${diffDay} days ago`;
+    }
+
+    return incidentDateTime.toLocaleDateString();
+}
+
+function getLocationString(incident: ApiIncident): string {
+    const barangay = incident.barangay?.name || incident.location_barangay;
+    const street = incident.street || incident.location_specific;
+
+    // Attempt to string things together nicely
+    if (street && street !== 'N/A' && barangay && barangay !== 'N/A' && barangay !== 'ALL') {
+        return `${street}, Brgy. ${barangay}`;
+    } else if (barangay && barangay !== 'N/A' && barangay !== 'ALL') {
+        return `Brgy. ${barangay}, San Juan City`;
+    } else if (street && street !== 'N/A') {
+        return `${street}, San Juan City`;
+    }
+    return 'San Juan City';
+}
 
 // ─── Component ──────────────────────────────────────────────────────────
 export default function IncidentScreen() {
-    const {user} = useAuth();
+    const { user } = useAuth();
+
+    const [recentIncidents, setRecentIncidents] = useState<ApiIncident[]>([]);
+    const [todayStats, setTodayStats] = useState<ApiIncidentStats>({});
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const fetchData = useCallback(async () => {
+        try {
+            const [incidents, stats] = await Promise.all([
+                getRecentIncidents(15),
+                getTodayIncidentStats()
+            ]);
+            setRecentIncidents(incidents);
+            setTodayStats(stats);
+        } catch (error) {
+            console.error("Failed to fetch incident data", error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchData();
+    };
 
     const getSeverityColor = (severity: string) => {
         switch (severity) {
@@ -126,14 +159,22 @@ export default function IncidentScreen() {
         }
     };
 
+    // Transform today Stats into sorted array for UI
+    const todayTotal = Object.values(todayStats).reduce((acc, val) => acc + val, 0);
+    const typeBreakdown = Object.entries(todayStats)
+        .filter(([_, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1]);
+    const maxTypeCount = typeBreakdown.length > 0 ? Math.max(...typeBreakdown.map(([, count]) => count)) : 1;
+
     return (
         <View style={sharedStyles.container}>
-            <SharedHeader />
+
 
             <ScrollView
                 style={sharedStyles.mainContent}
                 contentContainerStyle={sharedStyles.scrollContainer}
                 showsVerticalScrollIndicator={false}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
             >
                 <SharedHeader />
                 <View style={[sharedStyles.whiteContainer]}>
@@ -162,101 +203,107 @@ export default function IncidentScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* ── Today's Summary Card ── */}
-                    <View style={styles.todaySummaryCard}>
-                        <View style={styles.summaryHeader}>
-                            <View style={styles.todayBadge}>
-                                <Text style={styles.todayBadgeText}>TODAY</Text>
-                            </View>
-                            <Text style={styles.summaryTitle}>Incident Summary</Text>
+                    {loading && !refreshing ? (
+                        <View style={{ padding: 40, alignItems: 'center' }}>
+                            <ActivityIndicator size="large" color={colors.primary} />
                         </View>
-                        <View style={styles.summaryContent}>
-                            <View style={styles.summaryItem}>
-                                <Text style={styles.summaryValue}>{TODAY_STATS.total}</Text>
-                                <Text style={styles.summaryLabel}>Total</Text>
-                            </View>
-                            <View style={styles.summaryDivider} />
-                            <View style={styles.summaryItem}>
-                                <Text style={[styles.summaryValue, { color: colors.critical }]}>{TODAY_STATS.active}</Text>
-                                <Text style={styles.summaryLabel}>Active</Text>
-                            </View>
-                            <View style={styles.summaryDivider} />
-                            <View style={styles.summaryItem}>
-                                <Text style={[styles.summaryValue, { color: colors.success }]}>{TODAY_STATS.resolved}</Text>
-                                <Text style={styles.summaryLabel}>Resolved</Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* ── Incident Type Breakdown ── */}
-                    <Text style={styles.subSectionTitle}>By Type</Text>
-                    <View style={styles.typeBreakdownCard}>
-                        {TYPE_COUNTS.map(([type, count]) => {
-                            const config = INCIDENT_TYPES[type];
-                            const barWidth = (count / MAX_TYPE_COUNT) * 100;
-                            return (
-                                <View key={type} style={styles.typeRow}>
-                                    <View style={styles.typeIconRow}>
-                                        <View style={[styles.typeIconBg, { backgroundColor: config.color + '18' }]}>
-                                            <MaterialCommunityIcons name={config.icon as any} size={16} color={config.color} />
-                                        </View>
-                                        <Text style={styles.typeLabel}>{config.label}</Text>
+                    ) : (
+                        <>
+                            {/* ── Today's Summary Card ── */}
+                            <View style={styles.todaySummaryCard}>
+                                <View style={styles.summaryHeader}>
+                                    <View style={styles.todayBadge}>
+                                        <Text style={styles.todayBadgeText}>TODAY</Text>
                                     </View>
-                                    <View style={styles.barContainer}>
-                                        <View style={[styles.bar, { width: `${barWidth}%`, backgroundColor: config.color }]} />
-                                    </View>
-                                    <Text style={styles.typeCount}>{count}</Text>
+                                    <Text style={styles.summaryTitle}>Incident Summary</Text>
                                 </View>
-                            );
-                        })}
-                    </View>
+                                <View style={styles.summaryContent}>
+                                    <View style={styles.summaryItem}>
+                                        <Text style={styles.summaryValue}>{todayTotal}</Text>
+                                        <Text style={styles.summaryLabel}>Total Incidents</Text>
+                                    </View>
+                                </View>
+                            </View>
 
-                    {/* ── Recent Incidents Feed ── */}
-                    <Text style={styles.subSectionTitle}>Recent Incidents</Text>
-                    <View style={styles.incidentList}>
-                        {MOCK_INCIDENTS.map((incident) => {
-                            const typeConfig = INCIDENT_TYPES[incident.type];
-                            return (
-                                <TouchableOpacity key={incident.id} style={styles.incidentCard} activeOpacity={0.7}>
-
-                                    <View style={styles.incidentBody}>
-                                        {/* Top row: icon + title + status */}
-                                        <View style={styles.incidentTopRow}>
-                                            <View style={[styles.incidentIconBg, { backgroundColor: typeConfig.color + '18' }]}>
-                                                <MaterialCommunityIcons name={typeConfig.icon as any} size={20} color={typeConfig.color} />
-                                            </View>
-                                            <View style={styles.incidentTitleBlock}>
-                                                <View style={styles.incidentTitleRow}>
-                                                    <Text style={styles.incidentTitle} numberOfLines={1}>{incident.title}</Text>
-                                                </View>
-                                                <View style={styles.incidentMeta}>
-                                                    <View style={[styles.typeBadge, { backgroundColor: typeConfig.color + '18' }]}>
-                                                        <Text style={[styles.typeBadgeText, { color: typeConfig.color }]}>{typeConfig.label}</Text>
+                            {/* ── Incident Type Breakdown ── */}
+                            {typeBreakdown.length > 0 && (
+                                <>
+                                    <Text style={styles.subSectionTitle}>By Type (Today)</Text>
+                                    <View style={styles.typeBreakdownCard}>
+                                        {typeBreakdown.map(([type, count]) => {
+                                            const config = INCIDENT_TYPES[type] || DEFAULT_INCIDENT_CONFIG;
+                                            const barWidth = (count / maxTypeCount) * 100;
+                                            return (
+                                                <View key={type} style={styles.typeRow}>
+                                                    <View style={styles.typeIconRow}>
+                                                        <View style={[styles.typeIconBg, { backgroundColor: config.color + '18' }]}>
+                                                            <MaterialCommunityIcons name={config.icon as any} size={16} color={config.color} />
+                                                        </View>
+                                                        <Text style={styles.typeLabel} numberOfLines={1}>{config.label}</Text>
                                                     </View>
-                                                    <View style={[styles.statusPill, incident.status === 'active' ? styles.statusActive : styles.statusResolved]}>
-                                                        <View style={[styles.statusDot, { backgroundColor: incident.status === 'active' ? colors.critical : colors.success }]} />
-                                                        <Text style={[styles.statusText, { color: incident.status === 'active' ? colors.critical : colors.success }]}>
-                                                            {incident.status === 'active' ? 'Active' : 'Resolved'}
+                                                    <View style={styles.barContainer}>
+                                                        <View style={[styles.bar, { width: `${barWidth}%`, backgroundColor: config.color }]} />
+                                                    </View>
+                                                    <Text style={styles.typeCount}>{count}</Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                </>
+                            )}
+
+                            {/* ── Recent Incidents Feed ── */}
+                            <Text style={styles.subSectionTitle}>Recent Incidents</Text>
+                            <View style={styles.incidentList}>
+                                {recentIncidents.length === 0 ? (
+                                    <View style={{ padding: 20, alignItems: 'center' }}>
+                                        <Text style={{ color: colors.textSecondary }}>No recent incidents found.</Text>
+                                    </View>
+                                ) : (
+                                    recentIncidents.map((incident) => {
+                                        const typeConfig = INCIDENT_TYPES[incident.incident_category] || DEFAULT_INCIDENT_CONFIG;
+                                        return (
+                                            <TouchableOpacity key={incident.id} style={styles.incidentCard} activeOpacity={0.7}>
+                                                <View style={styles.incidentBody}>
+                                                    {/* Top row: icon + title + status */}
+                                                    <View style={styles.incidentTopRow}>
+                                                        <View style={[styles.incidentIconBg, { backgroundColor: typeConfig.color + '18' }]}>
+                                                            <MaterialCommunityIcons name={typeConfig.icon as any} size={20} color={typeConfig.color} />
+                                                        </View>
+                                                        <View style={styles.incidentTitleBlock}>
+                                                            <View style={styles.incidentTitleRow}>
+                                                                <Text style={styles.incidentTitle} numberOfLines={1}>
+                                                                    {incident.incident_category.replace(/_/g, ' ')} Incident
+                                                                </Text>
+                                                            </View>
+                                                            <View style={styles.incidentMeta}>
+                                                                <View style={[styles.typeBadge, { backgroundColor: typeConfig.color + '18' }]}>
+                                                                    <Text style={[styles.typeBadgeText, { color: typeConfig.color }]}>{typeConfig.label}</Text>
+                                                                </View>
+                                                            </View>
+                                                        </View>
+                                                    </View>
+
+                                                    {/* Bottom row: location + time */}
+                                                    <View style={styles.incidentBottomRow}>
+                                                        <View style={styles.incidentLocationRow}>
+                                                            <MaterialCommunityIcons name="map-marker-outline" size={14} color="#94A3B8" />
+                                                            <Text style={styles.incidentLocation} numberOfLines={1}>
+                                                                {getLocationString(incident)}
+                                                            </Text>
+                                                        </View>
+                                                        <Text style={styles.incidentTime}>
+                                                            {formatTimeAgo(incident.incident_date, incident.incident_time)}
                                                         </Text>
                                                     </View>
                                                 </View>
-                                            </View>
-                                        </View>
-
-                                        {/* Bottom row: location + time */}
-                                        <View style={styles.incidentBottomRow}>
-                                            <View style={styles.incidentLocationRow}>
-                                                <MaterialCommunityIcons name="map-marker-outline" size={14} color="#94A3B8" />
-                                                <Text style={styles.incidentLocation} numberOfLines={1}>{incident.location}</Text>
-                                            </View>
-                                            <Text style={styles.incidentTime}>{incident.timeAgo}</Text>
-                                        </View>
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-
+                                            </TouchableOpacity>
+                                        );
+                                    })
+                                )}
+                            </View>
+                        </>
+                    )}
                 </View>
             </ScrollView>
         </View>
