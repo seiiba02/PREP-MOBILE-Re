@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -116,11 +116,18 @@ export default function AlertsScreen() {
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
                 }
                 ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <MaterialCommunityIcons name="bell-off-outline" size={64} color={colors.textSecondary} opacity={0.3} />
-                        <Text style={styles.emptyText}>No alerts at the moment.</Text>
-                        <Text style={styles.emptySubtext}>We'll notify you when something happens.</Text>
-                    </View>
+                    isLoading ? (
+                        <View style={styles.emptyContainer}>
+                            <ActivityIndicator size="large" color={colors.primary} />
+                            <Text style={styles.emptyText}>Loading alerts...</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.emptyContainer}>
+                            <MaterialCommunityIcons name="bell-off-outline" size={64} color={colors.textSecondary} opacity={0.3} />
+                            <Text style={styles.emptyText}>No alerts at the moment.</Text>
+                            <Text style={styles.emptySubtext}>We'll notify you when something happens.</Text>
+                        </View>
+                    )
                 }
             />
         </SafeAreaView>
