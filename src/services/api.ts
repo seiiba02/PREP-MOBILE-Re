@@ -250,6 +250,55 @@ export async function getVideoById(id: number | string): Promise<ApiVideo | null
     return videos.find((v) => String(v.id) === String(id)) ?? null;
 }
 
+// ── Incidents (Accident Analysis) ─────────────────────────────────────────────
+
+export interface ApiIncident {
+    id: number;
+    incident_date: string;
+    incident_time: string;
+    incident_category: string;
+    location_specific: string | null;
+    street: string | null;
+    barangay?: {
+        id: number;
+        name: string;
+    } | null;
+    location_barangay: string | null;
+}
+
+export interface ApiIncidentStats {
+    [category: string]: number;
+}
+
+/**
+ * Fetch the most recent incidents (public).
+ * Uses the accident-analysis index endpoint ordered by created_at.
+ */
+export async function getRecentIncidents(limit = 10): Promise<ApiIncident[]> {
+    const currentYear = new Date().getFullYear();
+    const res = await api.get<ApiResponse<{ data: ApiIncident[] }>>('accident-analysis', {
+        params: {
+            sort: '-created_at',
+            per_page: limit,
+            year: currentYear
+        }
+    });
+    // The backend paginates the index endpoint. We return the array of items.
+    return res.data.data.data;
+}
+
+/**
+ * Fetch today's incident statistics grouped by category.
+ */
+export async function getTodayIncidentStats(): Promise<ApiIncidentStats> {
+    const res = await api.get<ApiResponse<ApiIncidentStats>>('accident-analysis/stats', {
+        params: {
+            range: 'today',
+        }
+    });
+    return res.data.data;
+}
+
 // ── Evacuation Centers ────────────────────────────────────────────────────────
 export interface ApiEvacuationCenter {
     id: number;
