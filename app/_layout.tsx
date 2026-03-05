@@ -5,6 +5,7 @@ import { AuthProvider } from '../src/contexts/AuthContext';
 import { AlertProvider } from '../src/contexts/AlertContext';
 import { LocationProvider } from '../src/contexts/LocationContext';
 import { Platform } from 'react-native';
+import { NotificationHandler } from '../src/components/NotificationHandler';
 
 export default function RootLayout() {
     useEffect(() => {
@@ -41,6 +42,7 @@ export default function RootLayout() {
         <AuthProvider>
             <LocationProvider>
             <AlertProvider>
+                <NotificationHandler />
                 <StatusBar style="auto" />
                 <Stack screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="(auth)" options={{ headerShown: false }} />
