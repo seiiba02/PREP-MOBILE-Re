@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, RefreshControl, AppState, AppStateStatus } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing } from '../../src/constants/colors';
@@ -143,6 +143,18 @@ export default function IncidentScreen() {
 
     useEffect(() => {
         fetchData();
+    }, [fetchData]);
+
+    // Re-fetch when the app returns to the foreground (e.g. after tapping a push notification)
+    const appState = useRef<AppStateStatus>(AppState.currentState);
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextState) => {
+            if (appState.current.match(/inactive|background/) && nextState === 'active') {
+                fetchData();
+            }
+            appState.current = nextState;
+        });
+        return () => subscription.remove();
     }, [fetchData]);
 
     const onRefresh = () => {
