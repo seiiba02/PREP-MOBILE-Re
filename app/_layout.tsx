@@ -6,36 +6,16 @@ import { AlertProvider } from '../src/contexts/AlertContext';
 import { LocationProvider } from '../src/contexts/LocationContext';
 import { Platform } from 'react-native';
 import { NotificationHandler } from '../src/components/NotificationHandler';
+import { setupNotificationHandler } from '../src/utils/notifications';
 
 export default function RootLayout() {
     useEffect(() => {
-        async function setupNotifications() {
-            if (Platform.OS === 'web') return;
-            try {
-                const Notifications = require('expo-notifications');
-
-                Notifications.setNotificationHandler({
-                    handleNotification: async () => ({
-                        shouldShowAlert: true,
-                        shouldPlaySound: true,
-                        shouldSetBadge: true,
-                    }),
-                });
-
-                const { status: existingStatus } = await Notifications.getPermissionsAsync();
-                let finalStatus = existingStatus;
-                if (existingStatus !== 'granted') {
-                    const { status } = await Notifications.requestPermissionsAsync();
-                    finalStatus = status;
-                }
-                if (finalStatus !== 'granted') {
-                    console.log('Failed to get push token for push notification!');
-                }
-            } catch (e) {
-                console.log('Notifications not available (Expo Go):', e);
-            }
+        // Configure foreground notification display (banner + sound + badge).
+        // setupNotificationHandler() includes shouldShowBanner and shouldShowList
+        // required by Expo SDK 51+ for pop-up banners while the app is open.
+        if (Platform.OS !== 'web') {
+            setupNotificationHandler();
         }
-        setupNotifications();
     }, []);
 
     return (
