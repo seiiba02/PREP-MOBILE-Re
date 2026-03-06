@@ -3,15 +3,6 @@ import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAlerts } from '../contexts/AlertContext';
 
-/**
- * Headless component that wires up Expo notification listeners.
- * Must be rendered inside both <AuthProvider> and <AlertProvider> so it has
- * access to refreshAlerts() and the router.
- *
- * - Foreground arrival  → refreshes the alert feed in-place
- * - User taps push      → navigates to incident tab (incident type)
- *                          or alerts screen (all other types)
- */
 export function NotificationHandler() {
     const { refreshAlerts } = useAlerts();
     const router = useRouter();
