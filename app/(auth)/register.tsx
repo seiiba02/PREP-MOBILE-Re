@@ -35,10 +35,28 @@ export default function RegisterScreen() {
     const [showBarangayPicker, setShowBarangayPicker] = useState(false);
 
     const handleRegister = async () => {
-        const { fullName, contactNumber, barangay, address, password, confirmPassword } = formData;
+        const fullName = formData.fullName.trim();
+        const contactNumber = formData.contactNumber.trim();
+        const address = formData.address.trim();
+        const { barangay, password, confirmPassword } = formData;
 
         if (!fullName || !contactNumber || !barangay || !address || !password || !confirmPassword) {
             setError('Please fill in all fields');
+            return;
+        }
+
+        if (!/^[a-zA-ZÀ-ÿñÑ\s.\-']+$/.test(fullName)) {
+            setError('Full name must contain only letters, spaces, and basic punctuation');
+            return;
+        }
+
+        if (!/^(09\d{9}|\+639\d{9})$/.test(contactNumber)) {
+            setError('Enter a valid Philippine phone number (09XXXXXXXXX or +639XXXXXXXXX)');
+            return;
+        }
+
+        if (password.length < 8) {
+            setError('Password must be at least 8 characters');
             return;
         }
 
@@ -49,7 +67,7 @@ export default function RegisterScreen() {
 
         setError('');
         try {
-            await register({ fullName, contactNumber, barangay, address, password});
+            await register({ fullName, contactNumber, barangay, address, password });
             // Registration auto-logs in via AuthContext — go straight to main app
             router.replace('/(tabs)');
         } catch (err) {
@@ -84,6 +102,8 @@ export default function RegisterScreen() {
                                         placeholder="Juan Dela Cruz"
                                         value={formData.fullName}
                                         onChangeText={(text) => setFormData({ ...formData, fullName: text })}
+                                        maxLength={255}
+                                        autoCapitalize="words"
                                     />
                                 </View>
 
@@ -96,6 +116,7 @@ export default function RegisterScreen() {
                                         value={formData.contactNumber}
                                         onChangeText={(text) => setFormData({ ...formData, contactNumber: text })}
                                         keyboardType="phone-pad"
+                                        maxLength={13}
                                     />
                                 </View>
 
@@ -147,6 +168,7 @@ export default function RegisterScreen() {
                                         value={formData.password}
                                         onChangeText={(text) => setFormData({ ...formData, password: text })}
                                         secureTextEntry
+                                        maxLength={128}
                                     />
                                 </View>
 
@@ -159,6 +181,7 @@ export default function RegisterScreen() {
                                         value={formData.confirmPassword}
                                         onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
                                         secureTextEntry
+                                        maxLength={128}
                                     />
                                 </View>
 
