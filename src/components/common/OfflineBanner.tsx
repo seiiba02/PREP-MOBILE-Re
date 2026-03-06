@@ -4,20 +4,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNetwork } from '../../contexts/NetworkContext';
 
+const BANNER_HEIGHT = 32;
+
 export function OfflineBanner() {
     const { isConnected } = useNetwork();
-    const translateY = useRef(new Animated.Value(-60)).current;
     const insets = useSafeAreaInsets();
+    const hiddenOffset = -(insets.top + BANNER_HEIGHT + 8);
+    const translateY = useRef(new Animated.Value(hiddenOffset)).current;
 
     const isOffline = isConnected === false;
 
     useEffect(() => {
         Animated.timing(translateY, {
-            toValue: isOffline ? 0 : -60,
+            toValue: isOffline ? 0 : hiddenOffset,
             duration: 300,
             useNativeDriver: true,
         }).start();
-    }, [isOffline, translateY]);
+    }, [hiddenOffset, isOffline, translateY]);
 
     return (
         <Animated.View
@@ -44,6 +47,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 8,
+        minHeight: BANNER_HEIGHT,
         gap: 8,
     },
     text: {
