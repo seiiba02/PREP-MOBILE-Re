@@ -14,6 +14,8 @@ export interface User {
     createdAt: string;
     avatarUrl?: string;
     role?: 'resident' | 'admin';
+    notificationsEnabled?: boolean;
+    locationEnabled?: boolean;
 }
 
 export interface AuthState {
