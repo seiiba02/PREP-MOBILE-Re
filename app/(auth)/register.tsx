@@ -23,7 +23,7 @@ export default function RegisterScreen() {
 
     const [formData, setFormData] = useState({
         fullName: '',
-        contactNumber: '',
+        contactNumber: '+63',
         barangay: '',
         address: '',
         zipCode: '',
@@ -50,8 +50,8 @@ export default function RegisterScreen() {
             return;
         }
 
-        if (!/^(09\d{9}|\+639\d{9})$/.test(contactNumber)) {
-            setError('Enter a valid Philippine phone number (09XXXXXXXXX or +639XXXXXXXXX)');
+        if (!/^\+639\d{9}$/.test(contactNumber)) {
+            setError('Enter a valid Philippine phone number (+639XXXXXXXXX)');
             return;
         }
 
@@ -112,9 +112,17 @@ export default function RegisterScreen() {
                                     <MaterialCommunityIcons name="phone" size={20} color={colors.textSecondary} style={styles.inputIcon} />
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="09XXXXXXXXX"
+                                        placeholder="+639XXXXXXXXX"
                                         value={formData.contactNumber}
-                                        onChangeText={(text) => setFormData({ ...formData, contactNumber: text })}
+                                        onChangeText={(text) => {
+                                            if (!text.startsWith('+63')) {
+                                                setFormData({ ...formData, contactNumber: '+63' });
+                                                return;
+                                            }
+                                            const digits = text.slice(3).replace(/\D/g, '');
+                                            const filtered = digits.startsWith('0') ? digits.slice(1) : digits;
+                                            setFormData({ ...formData, contactNumber: '+63' + filtered });
+                                        }}
                                         keyboardType="phone-pad"
                                         maxLength={13}
                                     />

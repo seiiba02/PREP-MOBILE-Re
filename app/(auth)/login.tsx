@@ -12,7 +12,7 @@ import { sharedStyles } from './_layout';
 export default function LoginScreen() {
     const router = useRouter();
     const { login, isLoading } = useAuth();
-    const [contactNumber, setContactNumber] = useState('');
+    const [contactNumber, setContactNumber] = useState('+63');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
@@ -53,11 +53,20 @@ export default function LoginScreen() {
                                     <MaterialCommunityIcons name="phone" size={20} color={colors.textSecondary} style={sharedStyles.inputIcon} />
                                     <TextInput
                                         style={sharedStyles.input}
-                                        placeholder="09XXXXXXXXX"
+                                        placeholder="+639XXXXXXXXX"
                                         value={contactNumber}
-                                        onChangeText={setContactNumber}
+                                        onChangeText={(text) => {
+                                            if (!text.startsWith('+63')) {
+                                                setContactNumber('+63');
+                                                return;
+                                            }
+                                            const digits = text.slice(3).replace(/\D/g, '');
+                                            const filtered = digits.startsWith('0') ? digits.slice(1) : digits;
+                                            setContactNumber('+63' + filtered);
+                                        }}
                                         keyboardType="phone-pad"
                                         autoCapitalize="none"
+                                        maxLength={13}
                                     />
                                 </View>
 
