@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { User, AuthState } from '../types';
 import {
@@ -12,6 +11,7 @@ import {
     ApiResident,
 } from '../services/api';
 import { registerForPushNotificationsAsync } from '../utils/notifications';
+import { saveAuthData, loadAuthData, clearAuthData } from '../utils/authStorage';
 
 interface AuthContextType extends AuthState {
     login: (contactNumber: string, password: string) => Promise<void>;
@@ -21,8 +21,6 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const STORAGE_KEY = '@PREP_AUTH_DATA';
 
 /** Map the backend resident shape → the app-wide User shape. */
 function mapApiResident(r: ApiResident, token: string): { user: User; token: string } {
@@ -36,6 +34,8 @@ function mapApiResident(r: ApiResident, token: string): { user: User; token: str
         otp: '',
         createdAt: r.created_at ?? new Date().toISOString(),
         role: 'resident',
+        notificationsEnabled: r.settings?.notifications_enabled ?? true,
+        locationEnabled: r.settings?.location_enabled ?? true,
     };
     return { user, token };
 }
@@ -61,15 +61,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: false,
     });
 
-    // Load stored auth data on mount
+    // Load stored auth data on mount (migrates legacy plain-text storage automatically)
     useEffect(() => {
         const loadStoredData = async () => {
             try {
-                const storedData = await AsyncStorage.getItem(STORAGE_KEY);
-                if (storedData) {
-                    const { user, token } = JSON.parse(storedData);
-                    setState({ user, token, isLoading: false, isAuthenticated: true });
-                    // Refresh push token on session restore
+                const authData = await loadAuthData();
+                if (authData) {
+                    setState({ user: authData.user, token: authData.token, isLoading: false, isAuthenticated: true });
                     syncPushToken();
                 } else {
                     setState(prev => ({ ...prev, isLoading: false }));
@@ -91,7 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 device_name: DEVICE_NAME,
             });
             const { user, token } = mapApiResident(payload.resident, payload.token);
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }));
+            await saveAuthData(user, token);
             setState({ user, token, isLoading: false, isAuthenticated: true });
             syncPushToken();
         } catch (error) {
@@ -114,7 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 device_name: DEVICE_NAME,
             });
             const { user, token } = mapApiResident(payload.resident, payload.token);
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }));
+            await saveAuthData(user, token);
             setState({ user, token, isLoading: false, isAuthenticated: true });
             syncPushToken();
         } catch (error) {
@@ -133,7 +131,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         try {
-            await AsyncStorage.removeItem(STORAGE_KEY);
+            await clearAuthData();
         } catch (error) {
             console.error('Failed to clear auth storage:', error);
         } finally {
@@ -147,13 +145,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const updated = await updateResidentProfile({
                 full_name: data.fullName,
                 contact_number: data.contactNumber,
+                ...(data.notificationsEnabled !== undefined && { notification_enabled: data.notificationsEnabled }),
+                ...(data.locationEnabled !== undefined && { location_enabled: data.locationEnabled }),
             });
             const { user } = mapApiResident(updated, state.token ?? '');
             const mergedUser = { ...state.user, ...user };
-            await AsyncStorage.setItem(
-                STORAGE_KEY,
-                JSON.stringify({ user: mergedUser, token: state.token }),
-            );
+            await saveAuthData(mergedUser, state.token ?? '');
             setState(prev => ({ ...prev, user: mergedUser }));
         } catch (error) {
             console.error('Failed to update profile:', error);
