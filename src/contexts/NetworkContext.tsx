@@ -8,7 +8,7 @@ interface NetworkContextType {
 
 const NetworkContext = createContext<NetworkContextType>({ isConnected: null });
 
-const CONNECTIVITY_POLL_MS = 10000;
+const CONNECTIVITY_POLL_MS = 100;
 const CONNECTIVITY_TIMEOUT_MS = 4000;
 
 async function probeConnectivity(): Promise<boolean> {
