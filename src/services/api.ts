@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { config } from '../constants/config';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getToken, clearAuthData } from '../utils/authStorage';
 
 const api = axios.create({
     baseURL: config.api.baseUrl,
@@ -44,12 +44,9 @@ function resolveMediaUrl(url: string | null): string | null {
 api.interceptors.request.use(
     async (config_axios) => {
         try {
-            const storedData = await AsyncStorage.getItem('@PREP_AUTH_DATA');
-            if (storedData) {
-                const { token } = JSON.parse(storedData);
-                if (token && config_axios.headers) {
-                    config_axios.headers.Authorization = `Bearer ${token}`;
-                }
+            const token = await getToken();
+            if (token && config_axios.headers) {
+                config_axios.headers.Authorization = `Bearer ${token}`;
             }
         } catch (e) {
             console.error('Error fetching token for API', e);
@@ -68,7 +65,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             // Session expired or invalid token — clear stored auth
             try {
-                await AsyncStorage.removeItem('@PREP_AUTH_DATA');
+                await clearAuthData();
             } catch (_) { /* best-effort */ }
         }
         return Promise.reject(error);
@@ -112,6 +109,7 @@ export interface ApiResident {
     barangay: ApiBarangay | null;
     settings: {
         notifications_enabled: boolean;
+        location_enabled: boolean;
     };
     created_at: string | null;
 }
@@ -184,6 +182,7 @@ export async function updateResidentProfile(
         contact_number: string;
         barangay_id: number;
         notification_enabled: boolean;
+        location_enabled: boolean;
     }>,
 ): Promise<ApiResident> {
     const res = await api.put<ApiResponse<ApiResident>>('residents/profile', data);
