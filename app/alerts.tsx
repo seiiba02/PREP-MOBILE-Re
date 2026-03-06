@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing } from '../src/constants/colors';
 import { useAlerts } from '../src/contexts/AlertContext';
 import { EmergencyAlert } from '../src/types';
+import { AlertsSkeleton } from '../src/components/common/AlertsSkeleton';
+import { OfflineEmptyState } from '../src/components/common/OfflineEmptyState';
+import { useNetwork } from '../src/contexts/NetworkContext';
 
 export default function AlertsScreen() {
     const { alerts, isLoading, refreshAlerts, markAsRead, markAllAsRead, clearRead } = useAlerts();
     const [refreshing, setRefreshing] = useState(false);
+    const { isConnected } = useNetwork();
     const router = useRouter();
 
     // Auto-refresh whenever the alerts screen is opened
@@ -117,10 +121,9 @@ export default function AlertsScreen() {
                 }
                 ListEmptyComponent={
                     isLoading ? (
-                        <View style={styles.emptyContainer}>
-                            <ActivityIndicator size="large" color={colors.primary} />
-                            <Text style={styles.emptyText}>Loading alerts...</Text>
-                        </View>
+                        <AlertsSkeleton />
+                    ) : isConnected === false ? (
+                        <OfflineEmptyState onRetry={refreshAlerts} />
                     ) : (
                         <View style={styles.emptyContainer}>
                             <MaterialCommunityIcons name="bell-off-outline" size={64} color={colors.textSecondary} opacity={0.3} />
