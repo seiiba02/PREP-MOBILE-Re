@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Switch, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing } from '../../src/constants/colors';
@@ -8,9 +8,44 @@ import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
     const router = useRouter();
-    const { user, logout } = useAuth();
-    const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-    const [locationEnabled, setLocationEnabled] = React.useState(true);
+    const { user, logout, updateUser } = useAuth();
+
+    const [notificationsEnabled, setNotificationsEnabled] = React.useState(
+        user?.notificationsEnabled ?? true
+    );
+    const [locationEnabled, setLocationEnabled] = React.useState(
+        user?.locationEnabled ?? true
+    );
+    const [savingNotif, setSavingNotif] = React.useState(false);
+    const [savingLocation, setSavingLocation] = React.useState(false);
+
+    const handleNotificationsToggle = async (value: boolean) => {
+        const previous = notificationsEnabled;
+        setNotificationsEnabled(value); // optimistic
+        setSavingNotif(true);
+        try {
+            await updateUser({ notificationsEnabled: value });
+        } catch {
+            setNotificationsEnabled(previous); // revert on error
+            Alert.alert('Error', 'Failed to update notification settings. Please try again.');
+        } finally {
+            setSavingNotif(false);
+        }
+    };
+
+    const handleLocationToggle = async (value: boolean) => {
+        const previous = locationEnabled;
+        setLocationEnabled(value); // optimistic
+        setSavingLocation(true);
+        try {
+            await updateUser({ locationEnabled: value });
+        } catch {
+            setLocationEnabled(previous); // revert on error
+            Alert.alert('Error', 'Failed to update location settings. Please try again.');
+        } finally {
+            setSavingLocation(false);
+        }
+    };
 
     const ProfileItem = ({ icon, title, value, onPress, isDestructive = false }: any) => (
         <TouchableOpacity
@@ -69,7 +104,8 @@ export default function ProfileScreen() {
                             </View>
                             <Switch
                                 value={notificationsEnabled}
-                                onValueChange={setNotificationsEnabled}
+                                onValueChange={handleNotificationsToggle}
+                                disabled={savingNotif}
                                 trackColor={{ false: colors.border, true: colors.secondary + '80' }}
                                 thumbColor={notificationsEnabled ? colors.secondary : '#f4f3f4'}
                             />
@@ -83,7 +119,8 @@ export default function ProfileScreen() {
                             </View>
                             <Switch
                                 value={locationEnabled}
-                                onValueChange={setLocationEnabled}
+                                onValueChange={handleLocationToggle}
+                                disabled={savingLocation}
                                 trackColor={{ false: colors.border, true: colors.secondary + '80' }}
                                 thumbColor={locationEnabled ? colors.secondary : '#f4f3f4'}
                             />
