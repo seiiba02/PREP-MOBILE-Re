@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, RefreshControl, AppState, AppStateStatus } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, RefreshControl, AppState, AppStateStatus } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing } from '../../src/constants/colors';
@@ -7,6 +7,9 @@ import { sharedStyles } from './_layout';
 import { SharedHeader } from '../../src/components/SharedHeader';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { getRecentIncidents, getTodayIncidentStats, ApiIncident, ApiIncidentStats } from '../../src/services/api';
+import { IncidentSkeleton } from '../../src/components/common/IncidentSkeleton';
+import { OfflineEmptyState } from '../../src/components/common/OfflineEmptyState';
+import { useNetwork } from '../../src/contexts/NetworkContext';
 
 const { width } = Dimensions.get('window');
 
@@ -119,6 +122,7 @@ function getLocationString(incident: ApiIncident): string {
 // ─── Component ──────────────────────────────────────────────────────────
 export default function IncidentScreen() {
     const { user } = useAuth();
+    const { isConnected } = useNetwork();
 
     const [recentIncidents, setRecentIncidents] = useState<ApiIncident[]>([]);
     const [todayStats, setTodayStats] = useState<ApiIncidentStats>({});
@@ -216,9 +220,9 @@ export default function IncidentScreen() {
                     </TouchableOpacity>
 
                     {loading && !refreshing ? (
-                        <View style={{ padding: 40, alignItems: 'center' }}>
-                            <ActivityIndicator size="large" color={colors.primary} />
-                        </View>
+                        <IncidentSkeleton />
+                    ) : isConnected === false && recentIncidents.length === 0 ? (
+                        <OfflineEmptyState onRetry={fetchData} />
                     ) : (
                         <>
                             {/* ── Today's Summary Card ── */}
