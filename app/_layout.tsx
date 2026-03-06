@@ -4,9 +4,11 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { AlertProvider } from '../src/contexts/AlertContext';
 import { LocationProvider } from '../src/contexts/LocationContext';
-import { Platform } from 'react-native';
+import { NetworkProvider } from '../src/contexts/NetworkContext';
+import { Platform, View } from 'react-native';
 import { NotificationHandler } from '../src/components/NotificationHandler';
 import { setupNotificationHandler } from '../src/utils/notifications';
+import { OfflineBanner } from '../src/components/common/OfflineBanner';
 
 export default function RootLayout() {
     useEffect(() => {
@@ -19,17 +21,22 @@ export default function RootLayout() {
     }, []);
 
     return (
-        <AuthProvider>
-            <LocationProvider>
-            <AlertProvider>
-                <NotificationHandler />
-                <StatusBar style="auto" />
-                <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                </Stack>
-            </AlertProvider>
-            </LocationProvider>
-        </AuthProvider>
+        <NetworkProvider>
+            <AuthProvider>
+                <LocationProvider>
+                    <AlertProvider>
+                        <View style={{ flex: 1 }}>
+                            <NotificationHandler />
+                            <StatusBar style="auto" />
+                            <Stack screenOptions={{ headerShown: false }}>
+                                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                            </Stack>
+                            <OfflineBanner />
+                        </View>
+                    </AlertProvider>
+                </LocationProvider>
+            </AuthProvider>
+        </NetworkProvider>
     );
 }
