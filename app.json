@@ -51,7 +51,8 @@
           "locationAlwaysAndWhenInUsePermission": "PREP needs your location to route you to the nearest evacuation center.",
           "locationWhenInUsePermission": "PREP needs your location to show nearby evacuation centers."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "scheme": "prep-mobile",
     "extra": {
